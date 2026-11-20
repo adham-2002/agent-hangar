@@ -67,6 +67,7 @@ import { applyTextSize } from "../lib/textScale";
 import { getErrorMessage } from "../lib/error";
 import { IS_MACOS, IS_WINDOWS } from "../lib/platform";
 import type { Theme } from "../hooks/useTheme";
+import { APP_REPO_URL } from "../lib/appRepo";
 
 /** Platforms whose updater artifact can replace the running install.
  *
@@ -204,7 +205,7 @@ export function Settings() {
   const [addingCustom, setAddingCustom] = useState(false);
   const [showMoreAgents, setShowMoreAgents] = useState(false);
 
-  const GITHUB_URL = "https://github.com/xingkongliang/skills-manager";
+  const GITHUB_URL = APP_REPO_URL;
   const WEBSITE_URL = "https://skillsmanager.dev";
 
   const startEditPath = useCallback((key: string, currentPath: string) => {

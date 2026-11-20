@@ -12,8 +12,9 @@ import {
   type ChangelogEntry,
 } from "../lib/changelog";
 import * as api from "../lib/tauri";
+import { APP_RELEASES_URL } from "../lib/appRepo";
 
-const RELEASES_URL = "https://github.com/xingkongliang/skills-manager/releases";
+const RELEASES_URL = APP_RELEASES_URL;
 
 // No remark-gfm: its autolink regex uses lookbehind, which old WebKit rejects
 // with a SyntaxError that unmounts the app (#613, see SkillMarkdown.tsx). The
