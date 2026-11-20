@@ -921,6 +921,7 @@ pub fn run() {
 
             let step = Instant::now();
             core::file_watcher::start_file_watcher(app.handle().clone(), store_for_setup.clone());
+            core::plugin_watcher::start_plugin_watcher(app.handle().clone());
             log::info!(
                 "startup: start_file_watcher done in {} ms",
                 step.elapsed().as_millis()
