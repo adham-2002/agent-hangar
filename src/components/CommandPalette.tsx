@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Search,
   Layers,
+  Puzzle,
   Download,
   Settings as SettingsIcon,
   FolderOpen,
@@ -154,6 +155,13 @@ export function CommandPalette() {
         label: t("sidebar.mySkills"),
         icon: <Layers className="h-3.5 w-3.5" />,
         run: () => navigate("/my-skills"),
+      },
+      {
+        id: "action:plugins",
+        kind: "action",
+        label: t("sidebar.plugins"),
+        icon: <Puzzle className="h-3.5 w-3.5" />,
+        run: () => navigate("/plugins"),
       },
       {
         id: "action:install",

@@ -8,6 +8,7 @@
     "globalWorkspace": "Global Workspace",
     "lobsterAgents": "Lobster Agents",
     "installSkills": "Install Skills",
+    "plugins": "Plugins",
     "backup": "Backup",
     "presets": "Presets",
     "newPreset": "New Preset",
@@ -1157,5 +1158,36 @@
     "gotIt": "Got it",
     "fullChangelog": "Full changelog",
     "close": "Close"
+  },
+  "plugins": {
+    "title": "Plugins",
+    "subtitle": "Manage the Claude Code plugins installed on this machine.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search plugins",
+    "appliesToNewSessions": "Changes apply to new Claude Code sessions.",
+    "empty": "No plugins installed",
+    "emptyHint": "Plugins you install in Claude Code will appear here.",
+    "noMatch": "No plugins match your search.",
+    "notInstalled": "Not installed",
+    "filesMissing": "Files missing",
+    "filesMissingHint": "This plugin's files are no longer on disk. Reinstall it from Claude Code.",
+    "toggleTitle": "Enable {{name}}",
+    "toggleFailed": "Could not update the plugin",
+    "loadFailed": "Could not load plugins",
+    "skillsCount_one": "{{count}} skill",
+    "skillsCount_other": "{{count}} skills",
+    "commandsCount_one": "{{count}} command",
+    "commandsCount_other": "{{count}} commands",
+    "agentsCount_one": "{{count}} agent",
+    "agentsCount_other": "{{count}} agents",
+    "mcpCount_one": "{{count}} MCP server",
+    "mcpCount_other": "{{count}} MCP servers",
+    "detail": {
+      "skills": "Skills",
+      "commands": "Commands",
+      "agents": "Agents",
+      "mcp": "MCP servers",
+      "hooks": "Includes hooks"
+    }
   }
 }

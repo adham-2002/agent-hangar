@@ -8,6 +8,7 @@
     "globalWorkspace": "全局工作区",
     "lobsterAgents": "龙虾 Agent",
     "installSkills": "安装 Skills",
+    "plugins": "插件",
     "backup": "备份",
     "presets": "Preset",
     "newPreset": "新建 Preset",
@@ -1157,5 +1158,32 @@
     "gotIt": "知道了",
     "fullChangelog": "查看完整更新日志",
     "close": "关闭"
+  },
+  "plugins": {
+    "title": "插件",
+    "subtitle": "管理本机已安装的 Claude Code 插件。",
+    "refresh": "刷新",
+    "searchPlaceholder": "搜索插件",
+    "appliesToNewSessions": "更改将在新的 Claude Code 会话中生效。",
+    "empty": "尚未安装插件",
+    "emptyHint": "你在 Claude Code 中安装的插件会显示在这里。",
+    "noMatch": "没有匹配的插件。",
+    "notInstalled": "未安装",
+    "filesMissing": "文件缺失",
+    "filesMissingHint": "此插件的文件已不在磁盘上，请在 Claude Code 中重新安装。",
+    "toggleTitle": "启用 {{name}}",
+    "toggleFailed": "无法更新插件",
+    "loadFailed": "无法加载插件",
+    "skillsCount_other": "{{count}} 个技能",
+    "commandsCount_other": "{{count}} 个命令",
+    "agentsCount_other": "{{count}} 个代理",
+    "mcpCount_other": "{{count}} 个 MCP 服务器",
+    "detail": {
+      "skills": "技能",
+      "commands": "命令",
+      "agents": "代理",
+      "mcp": "MCP 服务器",
+      "hooks": "包含钩子"
+    }
   }
 }

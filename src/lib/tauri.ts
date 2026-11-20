@@ -863,3 +863,35 @@ export const updateGlobalLocalSkillFromCenter = (agent: string, skillRelativePat
 
 export const deleteGlobalLocalSkill = (agent: string, skillRelativePath: string) =>
   invoke<void>("delete_global_local_skill", { agent, skillRelativePath });
+
+// ── Plugins ──
+
+export interface PluginInfo {
+  id: string;
+  name: string;
+  marketplace: string;
+  version: string | null;
+  scope: string;
+  enabled: boolean;
+  install_path: string | null;
+  installed: boolean;
+  files_present: boolean;
+}
+
+export interface PluginDetail {
+  description: string | null;
+  author: string | null;
+  skills: string[];
+  commands: string[];
+  agents: string[];
+  hooks: boolean;
+  mcp_servers: string[];
+}
+
+export const listPlugins = () => invoke<PluginInfo[]>("list_plugins");
+
+export const getPluginDetail = (installPath: string) =>
+  invoke<PluginDetail>("get_plugin_detail", { installPath });
+
+export const setPluginEnabled = (id: string, enabled: boolean) =>
+  invoke<void>("set_plugin_enabled", { id, enabled });
