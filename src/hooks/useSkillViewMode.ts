@@ -12,23 +12,35 @@ export type SkillViewMode = "grid" | "list";
 interface ViewPreference {
   viewMode: SkillViewMode;
   groupBySource: boolean;
+  /**
+   * Whether `groupBySource` is the user's own choice. Until they use the toggle,
+   * grouping follows the library (see `defaultGroupBySource`). This is a separate
+   * flag because the preference has always been written back on load, so a
+   * stored `groupBySource: false` cannot tell "turned off" from "never touched".
+   */
+  groupBySourceChosen: boolean;
 }
 
 const STORAGE_KEY = "skills-manager.skillViewMode";
 
-const DEFAULT_PREFERENCE: ViewPreference = { viewMode: "grid", groupBySource: false };
+const DEFAULT_PREFERENCE: ViewPreference = {
+  viewMode: "grid",
+  groupBySource: false,
+  groupBySourceChosen: false,
+};
 
-function readPreference(): ViewPreference {
+export function readPreference(): ViewPreference {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "grid" || stored === "list") {
-      return { viewMode: stored, groupBySource: false };
+      return { ...DEFAULT_PREFERENCE, viewMode: stored };
     }
     if (stored) {
       const parsed = JSON.parse(stored) as Partial<ViewPreference>;
       return {
         viewMode: parsed.viewMode === "list" ? "list" : "grid",
         groupBySource: parsed.groupBySource === true,
+        groupBySourceChosen: parsed.groupBySourceChosen === true,
       };
     }
   } catch {
@@ -53,8 +65,11 @@ export function useSkillViewMode() {
   }, []);
 
   const setGroupBySource = useCallback((next: boolean) => {
-    setPreference((prev) => ({ ...prev, groupBySource: next }));
+    setPreference((prev) => ({ ...prev, groupBySource: next, groupBySourceChosen: true }));
   }, []);
 
-  return [preference.viewMode, setViewMode, preference.groupBySource, setGroupBySource] as const;
+  /** The user's grouping choice, or null when they have not made one yet. */
+  const groupBySource = preference.groupBySourceChosen ? preference.groupBySource : null;
+
+  return [preference.viewMode, setViewMode, groupBySource, setGroupBySource] as const;
 }

@@ -15,6 +15,7 @@ use crate::core::error::AppError;
 use crate::core::path_guard;
 
 const INSTALLED_FILE: &str = "installed_plugins.json";
+const MARKETPLACES_FILE: &str = "known_marketplaces.json";
 const SETTINGS_FILE: &str = "settings.json";
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -30,6 +31,10 @@ pub struct PluginInfo {
     pub installed: bool,
     /// The install folder exists on disk.
     pub files_present: bool,
+    /// The git repository the plugin comes from, as a URL or `owner/repo`,
+    /// resolved through its marketplace. Used to recognise the same pack
+    /// installed as library skills. None when it cannot be determined.
+    pub source_repo: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, PartialEq)]
@@ -79,9 +84,71 @@ fn split_id(id: &str) -> (String, String) {
     }
 }
 
+/// A marketplace's own repository, from its `known_marketplaces.json` source.
+fn marketplace_repo(source: &Value) -> Option<String> {
+    match source.get("source").and_then(Value::as_str) {
+        Some("github") => source
+            .get("repo")
+            .and_then(Value::as_str)
+            .map(|repo| format!("https://github.com/{repo}")),
+        _ => source.get("url").and_then(Value::as_str).map(str::to_string),
+    }
+}
+
+/// Where a plugin's files come from, per its marketplace's `marketplace.json`:
+/// a path inside the marketplace repo (`"./x"`), `{source: github, repo}`, or
+/// `{source: url | git-subdir, url}`. Anything unreadable yields None; this is
+/// a hint for matching, never a reason to fail the listing.
+fn resolve_source_repo(
+    claude_home: &Path,
+    marketplaces: Option<&Value>,
+    marketplace: &str,
+    plugin: &str,
+) -> Option<String> {
+    let entry = marketplaces?.get(marketplace)?;
+    let market_repo = entry.get("source").and_then(marketplace_repo);
+
+    let location = entry
+        .get("installLocation")
+        .and_then(Value::as_str)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| plugins_dir(claude_home).join("marketplaces").join(marketplace));
+    let manifest = read_json(&location.join(".claude-plugin").join("marketplace.json"))
+        .ok()
+        .flatten();
+    let source = manifest
+        .as_ref()
+        .and_then(|m| m.get("plugins"))
+        .and_then(Value::as_array)
+        .and_then(|list| {
+            list.iter()
+                .find(|p| p.get("name").and_then(Value::as_str) == Some(plugin))
+        })
+        .and_then(|p| p.get("source"));
+
+    match source {
+        Some(Value::String(_)) | None => market_repo,
+        Some(obj) => match obj.get("source").and_then(Value::as_str) {
+            Some("github") => obj
+                .get("repo")
+                .and_then(Value::as_str)
+                .map(|repo| format!("https://github.com/{repo}")),
+            _ => obj
+                .get("url")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .or(market_repo),
+        },
+    }
+}
+
 pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
     let installed = read_json(&plugins_dir(claude_home).join(INSTALLED_FILE))?;
     let settings = read_json(&claude_home.join(SETTINGS_FILE))?;
+    // Only used to resolve source repos, so a bad file degrades to "unknown".
+    let marketplaces = read_json(&plugins_dir(claude_home).join(MARKETPLACES_FILE))
+        .ok()
+        .flatten();
 
     let enabled_map = settings
         .as_ref()
@@ -113,10 +180,13 @@ pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
                 .and_then(Value::as_str)
                 .map(str::to_string);
             let (name, marketplace) = split_id(id);
+            let source_repo =
+                resolve_source_repo(claude_home, marketplaces.as_ref(), &marketplace, &name);
             out.push(PluginInfo {
                 id: id.clone(),
                 name,
                 marketplace,
+                source_repo,
                 version: entry
                     .and_then(|e| e.get("version"))
                     .and_then(Value::as_str)
@@ -154,6 +224,7 @@ pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
                 install_path: None,
                 installed: false,
                 files_present: false,
+                source_repo: None,
             });
         }
     }
@@ -470,6 +541,54 @@ mod tests {
         fs::create_dir_all(home.path().join("plugins")).unwrap();
         let err = inspect_plugin(home.path(), outside.path()).unwrap_err();
         assert!(err.message.contains("outside"));
+    }
+
+    fn marketplace_fixture(home: &Path, plugins_json: &str) {
+        let loc = home.join("plugins/marketplaces/m");
+        write(&loc.join(".claude-plugin/marketplace.json"), plugins_json);
+        write(
+            &home.join("plugins/known_marketplaces.json"),
+            &format!(
+                r#"{{"m": {{"source": {{"source": "github", "repo": "Owner/Market"}}, "installLocation": {}}}}}"#,
+                serde_json::to_string(&loc.to_string_lossy()).unwrap()
+            ),
+        );
+    }
+
+    fn repo_of(home: &Path, plugin: &str) -> Option<String> {
+        write(
+            &home.join("plugins/installed_plugins.json"),
+            &format!(r#"{{"plugins": {{"{plugin}@m": [{{"scope": "user", "installPath": "/x"}}]}}}}"#),
+        );
+        list_plugins(home).unwrap()[0].source_repo.clone()
+    }
+
+    #[test]
+    fn source_repo_resolves_every_marketplace_form() {
+        let home = tempdir().unwrap();
+        marketplace_fixture(
+            home.path(),
+            r#"{"plugins": [
+                {"name": "rel", "source": "./plugins/rel"},
+                {"name": "gh", "source": {"source": "github", "repo": "obra/superpowers"}},
+                {"name": "url", "source": {"source": "url", "url": "https://gitlab.com/a/b.git"}},
+                {"name": "sub", "source": {"source": "git-subdir", "url": "Owner/Other", "path": "p"}}
+            ]}"#,
+        );
+        assert_eq!(repo_of(home.path(), "rel").as_deref(), Some("https://github.com/Owner/Market"));
+        assert_eq!(repo_of(home.path(), "gh").as_deref(), Some("https://github.com/obra/superpowers"));
+        assert_eq!(repo_of(home.path(), "url").as_deref(), Some("https://gitlab.com/a/b.git"));
+        assert_eq!(repo_of(home.path(), "sub").as_deref(), Some("Owner/Other"));
+        // Not listed in the manifest: fall back to the marketplace's own repo.
+        assert_eq!(repo_of(home.path(), "absent").as_deref(), Some("https://github.com/Owner/Market"));
+    }
+
+    #[test]
+    fn source_repo_is_none_without_marketplace_data() {
+        let home = tempdir().unwrap();
+        assert_eq!(repo_of(home.path(), "rel"), None);
+        write(&home.path().join("plugins/known_marketplaces.json"), "{broken");
+        assert_eq!(repo_of(home.path(), "rel"), None);
     }
 
     const SETTINGS: &str = r#"{

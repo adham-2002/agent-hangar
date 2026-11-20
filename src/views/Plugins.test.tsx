@@ -27,6 +27,7 @@ const plugin = (over: Partial<PluginInfo> = {}): PluginInfo => ({
   install_path: "/p/seo",
   installed: true,
   files_present: true,
+  source_repo: null,
   ...over,
 });
 

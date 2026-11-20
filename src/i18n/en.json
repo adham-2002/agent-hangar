@@ -477,6 +477,39 @@
       "apply": "Sync {{count}}",
       "noAgents": "No installed and enabled agents.",
       "allSynced": "Every selected skill is already on this agent"
+    },
+    "sourceGroup": {
+      "select": "Select all skills from {{source}}",
+      "actions": "Actions for {{source}}",
+      "agentAdd": "{{agent}}: {{deployed}} of {{total}} installed · click to install all",
+      "agentRemove": "{{agent}}: all {{total}} installed · click to remove all",
+      "packInstalled_one": "Installed {{count}} skill from {{source}} to {{agent}}",
+      "packInstalled_other": "Installed {{count}} skills from {{source}} to {{agent}}",
+      "packRemoved_one": "Removed {{count}} skill of {{source}} from {{agent}}",
+      "packRemoved_other": "Removed {{count}} skills of {{source}} from {{agent}}",
+      "packFailed_one": "{{count}} skill could not be updated on {{agent}}",
+      "packFailed_other": "{{count}} skills could not be updated on {{agent}}"
+    },
+    "pluginPacks": {
+      "title": "Claude Code plugins",
+      "hint": "Packs installed as Claude Code plugins. Claude Code manages their skills; turn a plugin on or off here.",
+      "badge": "Plugin",
+      "alsoInLibrary": "Also in your library",
+      "alsoPlugin": "Also a plugin",
+      "toggle": "Turn {{name}} on or off in Claude Code",
+      "openInPlugins": "Open in Plugins",
+      "noSkills": "This plugin bundles no skills.",
+      "managedByClaude": "Managed by Claude Code. Changes apply to new Claude Code sessions.",
+      "turnedOn": "{{name}} turned on for new Claude Code sessions",
+      "turnedOff": "{{name}} turned off for new Claude Code sessions"
+    },
+    "duplicatePack": {
+      "title": "{{source}} is installed twice for Claude Code: as library skills and as the plugin {{plugin}}",
+      "description_one": "Claude Code loads {{count}} skill twice: {{names}}",
+      "description_other": "Claude Code loads {{count}} skills twice: {{names}}",
+      "disablePlugin": "Turn off plugin",
+      "removeLibrary_one": "Remove {{count}} library skill from Claude Code",
+      "removeLibrary_other": "Remove {{count}} library skills from Claude Code"
     }
   },
   "install": {

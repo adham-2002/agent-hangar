@@ -876,6 +876,7 @@ export interface PluginInfo {
   install_path: string | null;
   installed: boolean;
   files_present: boolean;
+  source_repo: string | null;
 }
 
 export interface PluginDetail {

@@ -23,6 +23,31 @@ interface UseMultiSelectOptions<T> {
   escapeEnabled?: boolean;
 }
 
+/**
+ * A group's checkbox: if every key is selected, unselect them all; otherwise
+ * add the missing ones. Keys outside the group are left as they are, so packs
+ * can be combined.
+ */
+export function toggleKeys(prev: Set<string>, keys: string[]): Set<string> {
+  const next = new Set(prev);
+  if (keys.length > 0 && keys.every((key) => prev.has(key))) {
+    for (const key of keys) next.delete(key);
+  } else {
+    for (const key of keys) next.add(key);
+  }
+  return next;
+}
+
+/** How much of a group is selected, for its checkbox. */
+export function groupSelectionState(
+  selected: Set<string>,
+  keys: string[],
+): "none" | "some" | "all" {
+  const count = keys.filter((key) => selected.has(key)).length;
+  if (count === 0) return "none";
+  return count === keys.length ? "all" : "some";
+}
+
 export function useMultiSelect<T>({
   items,
   filtered,
@@ -85,6 +110,16 @@ export function useMultiSelect<T>({
     });
   };
 
+  /** Select every key in `keys`, or clear them all when every one is already selected. */
+  const toggleSelectMany = (keys: string[]) => {
+    setRawSelectedIds((prev) => toggleKeys(prev, keys));
+  };
+
+  /** Replace the selection with exactly `keys`. */
+  const selectOnly = (keys: string[]) => {
+    setRawSelectedIds(new Set(keys));
+  };
+
   const isAllSelected =
     filtered.length > 0 && filtered.every((s) => selectedIds.has(getKey(s)));
 
@@ -122,6 +157,8 @@ export function useMultiSelect<T>({
     setIsMultiSelect,
     selectedIds,
     toggleSelect,
+    toggleSelectMany,
+    selectOnly,
     isAllSelected,
     anyDisabled,
     handleSelectAll,

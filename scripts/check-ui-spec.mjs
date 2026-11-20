@@ -13,6 +13,7 @@ const AGENT_ICON_CELLS = new Set([
   'src/components/AgentControlSetupCard.tsx',
   'src/components/AgentToggleSection.tsx',
   'src/components/BatchSyncAgentDialog.tsx',
+  'src/components/PackAgentDots.tsx',
   'src/components/ProjectAgentDots.tsx',
   'src/components/SkillProjectsSection.tsx',
   'src/components/SyncDots.tsx',

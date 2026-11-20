@@ -477,6 +477,34 @@
       "apply": "同步 {{count}} 项",
       "noAgents": "没有已安装并启用的 Agent。",
       "allSynced": "选中的 Skill 都已同步到这个 Agent"
+    },
+    "sourceGroup": {
+      "select": "选择来自 {{source}} 的全部 Skill",
+      "actions": "{{source}} 的操作",
+      "agentAdd": "{{agent}}：已安装 {{deployed}}/{{total}} · 点击全部安装",
+      "agentRemove": "{{agent}}：已全部安装 {{total}} 个 · 点击全部移除",
+      "packInstalled_other": "已将 {{source}} 的 {{count}} 个 Skill 安装到 {{agent}}",
+      "packRemoved_other": "已从 {{agent}} 移除 {{source}} 的 {{count}} 个 Skill",
+      "packFailed_other": "{{count}} 个 Skill 未能在 {{agent}} 上更新"
+    },
+    "pluginPacks": {
+      "title": "Claude Code 插件",
+      "hint": "以 Claude Code 插件方式安装的技能包。其中的 Skill 由 Claude Code 管理，可在此开启或关闭插件。",
+      "badge": "插件",
+      "alsoInLibrary": "库中也有",
+      "alsoPlugin": "也是插件",
+      "toggle": "在 Claude Code 中开启或关闭 {{name}}",
+      "openInPlugins": "在插件页打开",
+      "noSkills": "此插件不包含 Skill。",
+      "managedByClaude": "由 Claude Code 管理，更改将在新的 Claude Code 会话中生效。",
+      "turnedOn": "已为新的 Claude Code 会话开启 {{name}}",
+      "turnedOff": "已为新的 Claude Code 会话关闭 {{name}}"
+    },
+    "duplicatePack": {
+      "title": "{{source}} 在 Claude Code 中安装了两次：库中的 Skill 和插件 {{plugin}}",
+      "description_other": "Claude Code 会重复加载 {{count}} 个 Skill：{{names}}",
+      "disablePlugin": "关闭插件",
+      "removeLibrary_other": "从 Claude Code 移除 {{count}} 个库中 Skill"
     }
   },
   "install": {

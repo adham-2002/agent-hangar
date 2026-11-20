@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sourceCandidates } from "./skillSource";
+import { buildSourceGroups, defaultGroupBySource, sourceCandidates } from "./skillSource";
 import type { ManagedSkill } from "./tauri";
 
 const skill = (id: string, source_ref: string | null, source_type = "git"): ManagedSkill => ({
@@ -46,5 +46,25 @@ describe("sourceCandidates", () => {
 
   it("has nothing to offer for an empty list", () => {
     expect(sourceCandidates([])).toEqual([]);
+  });
+});
+
+describe("defaultGroupBySource", () => {
+  it("groups once one known source holds more than one skill", () => {
+    const groups = buildSourceGroups([
+      skill("a", "https://github.com/obra/superpowers"),
+      skill("b", "git@github.com:obra/superpowers.git"),
+    ]);
+    expect(defaultGroupBySource(groups)).toBe(true);
+  });
+
+  it("stays flat for single skills and for the unknown bucket", () => {
+    const groups = buildSourceGroups([
+      skill("a", "https://github.com/one/a"),
+      skill("b", "https://github.com/two/b"),
+      skill("x", null, "mystery"),
+      skill("y", null, "mystery"),
+    ]);
+    expect(defaultGroupBySource(groups)).toBe(false);
   });
 });
