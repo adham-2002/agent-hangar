@@ -5,6 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 发布概览
+- 与 Skill 一起管理 Claude Code 插件：在应用内安装、更新、开关和阅读插件，并能一次管理整个技能包。
+
+### 用户可见更新
+- **插件页** — 列出这台电脑上的全部 Claude Code 插件（包括从 claude.ai 账户同步的插件），以及每个插件包含的内容（Skill、命令、代理、钩子、MCP 服务器）。可以开启、关闭、更新或卸载插件。**浏览**可搜索并安装所有市场中的插件；**市场**可添加、刷新和移除市场。更改在新的 Claude Code 会话中生效。
+- **不会擅自运行命令** — 有些市场会通过运行自己的命令来安装插件。应用会把这条命令原样展示给你，只有你点击**运行**后才会执行。
+- **有可用更新** — 根据最近一次目录刷新，标出市场提供了新版本的插件。
+- **阅读插件中的 Skill** — 点击插件包含的 Skill，即可阅读它的 `SKILL.md`。
+- **技能库中的技能包** — 每个来源都是一个技能包，有自己的颜色，显示在每张卡片上。在技能包标题上可以一键为某个 Agent 开启或关闭整个包，也可以全选，或对整个包同步、打标签、更新、删除。当某个来源包含多个 Skill 时，默认按来源分组。
+- **技能库中的插件** — Claude Code 插件会作为技能包显示在 Skill 下方。如果同一个技能包既作为插件安装、又作为库中 Skill 部署到 Claude Code，技能库会提示 Claude Code 会重复加载这些 Skill，并提供两种解决方式。
+- **Preset 默认显示已启用** — 打开 Preset 时先显示它启用的内容；在**全部**中，含有已启用 Skill 的来源排在前面。
+- **Agent 可以管理插件** — `skills-manager-cli plugins …` 可列出、搜索、安装、更新、卸载和开关插件，`manage-skills` Skill 会教 Agent 使用它。市场命令绝不会被代为批准：Agent 必须先展示给你。
+- **插件变化即时显示** — 用 `claude plugin` 或 `/plugin` 安装或修改的插件，无需重新聚焦窗口即可显示。
+
+### 开发者与治理更新
+- 插件状态直接读取 Claude 自己的文件（`installed_plugins.json`、`settings.json` 中的 `enabledPlugins`、`plugins/synced`），应用不保留副本。开关只原子地修改 `enabledPlugins`，保留键顺序和缩进（现已在整个 crate 启用 serde_json 的 `preserve_order`）。
+- 安装、更新、卸载和市场管理直接调用 `claude` CLI，不经过 shell，参数经过校验并设有超时。市场声明的命令只会以用户批准的那个 `--accept-command` 哈希执行。应用与 `skills-manager-cli` 共用 `core::plugin_ops`；插件操作会记录到活动日志。
+- 版本检查、更新地址、发布链接和 `manage-skills` 的安装来源都指向本仓库（`APP_REPO`）。从本仓库发布需要自己的更新签名密钥。
+
 ## [1.45.0] - 2026-11-14
 
 ### 发布概览

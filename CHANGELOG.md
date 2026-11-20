@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Release Overview
+- Manage Claude Code plugins alongside your skills: install, update, turn on or off and read them from the app, and manage a whole skill pack at once.
+
+### User-facing
+- **Plugins page** — Lists every Claude Code plugin on this computer, including ones synced from your claude.ai account, with what each bundles (skills, commands, agents, hooks, MCP servers). Turn a plugin on or off, update it, or uninstall it. **Browse** searches every plugin in your marketplaces and installs them; **Marketplaces** adds, refreshes and removes marketplaces. Changes apply to new Claude Code sessions.
+- **No surprise commands** — Some marketplaces install a plugin by running a command of their own. The app shows you that exact command and runs it only if you click **Run it**.
+- **Update available** — Plugins whose marketplace offers a newer version are flagged, as of the last catalog refresh.
+- **Read a plugin's skills** — Click a skill a plugin bundles to read its `SKILL.md`.
+- **Packs in Library** — Each source is a pack with its own colour, shown on every card. A pack header turns the whole pack on or off per agent in one click, selects it, or syncs, tags, updates or deletes all of it. Grouping by source is on by default once a source has more than one skill.
+- **Plugins in Library** — Your Claude Code plugins appear as packs below your skills. When the same pack is installed both as a plugin and as library skills in Claude Code, Library warns that Claude Code loads those skills twice and offers both fixes.
+- **Presets open on Enabled** — A preset shows what it enables first; under **All**, sources with an enabled skill come first.
+- **Agents can manage plugins** — `skills-manager-cli plugins …` lists, searches, installs, updates, removes and turns plugins on or off, and the `manage-skills` skill teaches agents to use it. A marketplace command is never approved on your behalf: the agent has to show it to you first.
+- **Plugin changes appear right away** — A plugin installed or changed with `claude plugin` or `/plugin` shows up without refocusing the window.
+
+### Developer & Governance
+- Plugin state is read from Claude's own files (`installed_plugins.json`, `settings.json` `enabledPlugins`, `plugins/synced`); the app keeps no copy. On/off edits only `enabledPlugins`, atomically, preserving key order and indentation (serde_json `preserve_order` is now enabled crate-wide).
+- Install, update, uninstall and marketplaces drive the `claude` CLI directly, never through a shell, with validated arguments and timeouts. A marketplace-declared command is accepted only by the exact `--accept-command` hash the user approved. `core::plugin_ops` is shared by the app and `skills-manager-cli`; plugin operations are recorded in the activity log.
+- The version check, updater endpoint, release links and the `manage-skills` install source point at this repository (`APP_REPO`). Releases from it need their own updater signing key.
+
 ## [1.45.0] - 2026-11-14
 
 ### Release Overview
