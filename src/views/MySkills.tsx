@@ -17,18 +17,14 @@ import {
   X,
   Plus,
   SquareCheck,
-  SquareMinus,
   Square,
   GripVertical,
   Circle,
-  ChevronDown,
-  ChevronRight,
   FolderTree,
   Pencil,
   Share2,
   Tag,
   Trash2,
-  AlertTriangle,
 } from "lucide-react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { useNavigate } from "react-router-dom";
@@ -48,7 +44,7 @@ import { BatchSyncAgentDialog } from "../components/BatchSyncAgentDialog";
 import { SyncDots } from "../components/SyncDots";
 import { ToggleSwitch } from "../components/ToggleSwitch";
 import { CardActionMenu } from "../components/CardActionMenu";
-import { PackAgentDots } from "../components/PackAgentDots";
+import { SourceGroupHeader } from "../components/SourceGroupHeader";
 import { PluginPackSection } from "../components/PluginPackSection";
 import { DuplicatePackBanner } from "../components/DuplicatePackBanner";
 import { usePluginInventory } from "../hooks/usePluginInventory";
@@ -1671,130 +1667,72 @@ export function MySkills() {
                 ? groupSelectionState(selectedIds, groupIds)
                 : "none";
               const refreshableInGroup = row.group.skills.filter(canRefresh).map((s) => s.id);
-              const title = (
-                <>
-                  {row.collapsible ? (
-                    row.expanded ? (
-                      <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                    )
-                  ) : null}
-                  <span
-                    aria-hidden
-                    className={cn("h-2.5 w-2.5 shrink-0 rounded-full", color ?? "bg-surface-active")}
-                  />
-                  <span className="truncate text-[13px] text-secondary">{label}</span>
-                  <span className="shrink-0 text-[11px] font-medium text-faint">
-                    {row.group.count}
-                  </span>
-                  {duplicateGroupKeys.has(row.group.key) ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-300">
-                      <AlertTriangle className="h-3 w-3" />
-                      {t("mySkills.pluginPacks.alsoPlugin")}
-                    </span>
-                  ) : null}
-                </>
-              );
-              const titleClass =
-                "flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-1 text-left font-semibold";
 
               return (
-                <div
+                <SourceGroupHeader
                   key={`group-${row.group.key}`}
-                  className={cn(
-                    "flex items-center gap-1 border-b border-border-subtle pt-3 pb-1 text-muted",
-                    viewMode === "grid" && "col-span-full"
-                  )}
-                >
-                  {/* A search forces every source open, so folding is not
-                      available and the title is plain text until it clears. */}
-                  {row.collapsible ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setGroupOpen((prev) => ({ ...prev, [row.group.key]: !row.expanded }))
-                      }
-                      aria-expanded={row.expanded}
-                      className={cn(titleClass, "transition-colors hover:bg-surface-hover hover:text-secondary")}
-                    >
-                      {title}
-                    </button>
-                  ) : (
-                    <div className={titleClass}>{title}</div>
-                  )}
-                  <PackAgentDots
-                    skills={row.group.skills}
-                    tools={tools}
-                    onToggle={(toolKey) =>
-                      void handleTogglePackTarget(row.group.key, label, row.group.skills, toolKey)
-                    }
-                    pendingKey={togglingPack?.group === row.group.key ? togglingPack.tool : null}
-                    disabled={!!togglingPack || !!togglingTarget}
-                  />
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={selection === "all" ? true : selection === "some" ? "mixed" : false}
-                    title={t("mySkills.sourceGroup.select", { source: label })}
-                    aria-label={t("mySkills.sourceGroup.select", { source: label })}
-                    onClick={() => {
-                      if (!isMultiSelect) setIsMultiSelect(true);
-                      toggleSelectMany(groupIds);
-                    }}
-                    className="shrink-0 rounded-md p-1 transition-colors hover:bg-surface-hover"
-                  >
-                    {selection === "all" ? (
-                      <SquareCheck className="h-3.5 w-3.5 text-accent" />
-                    ) : selection === "some" ? (
-                      <SquareMinus className="h-3.5 w-3.5 text-accent" />
-                    ) : (
-                      <Square className="h-3.5 w-3.5 text-faint" />
-                    )}
-                  </button>
-                  <CardActionMenu
-                    label={t("mySkills.sourceGroup.actions", { source: label })}
-                    actions={[
-                      {
-                        key: "sync",
-                        label: t("mySkills.batchSyncAgents", { count: groupIds.length }),
-                        icon: <Share2 className="h-3.5 w-3.5" />,
-                        onSelect: () => {
-                          selectSourceGroup(groupIds);
-                          setBatchSyncDialogOpen(true);
-                        },
+                  label={label}
+                  count={row.group.count}
+                  skills={row.group.skills}
+                  color={color}
+                  collapsible={row.collapsible}
+                  expanded={row.expanded}
+                  onToggleOpen={() =>
+                    setGroupOpen((prev) => ({ ...prev, [row.group.key]: !row.expanded }))
+                  }
+                  fullWidth={viewMode === "grid"}
+                  alsoPlugin={duplicateGroupKeys.has(row.group.key)}
+                  selection={selection}
+                  onToggleSelect={() => {
+                    if (!isMultiSelect) setIsMultiSelect(true);
+                    toggleSelectMany(groupIds);
+                  }}
+                  tools={tools}
+                  onTogglePackAgent={(toolKey) =>
+                    void handleTogglePackTarget(row.group.key, label, row.group.skills, toolKey)
+                  }
+                  pendingAgentKey={togglingPack?.group === row.group.key ? togglingPack.tool : null}
+                  agentsDisabled={!!togglingPack || !!togglingTarget}
+                  actions={[
+                    {
+                      key: "sync",
+                      label: t("mySkills.batchSyncAgents", { count: groupIds.length }),
+                      icon: <Share2 className="h-3.5 w-3.5" />,
+                      onSelect: () => {
+                        selectSourceGroup(groupIds);
+                        setBatchSyncDialogOpen(true);
                       },
-                      {
-                        key: "tags",
-                        label: t("mySkills.batchEditTags", { count: groupIds.length }),
-                        icon: <Tag className="h-3.5 w-3.5" />,
-                        onSelect: () => {
-                          selectSourceGroup(groupIds);
-                          setBatchTagDialogOpen(true);
-                        },
+                    },
+                    {
+                      key: "tags",
+                      label: t("mySkills.batchEditTags", { count: groupIds.length }),
+                      icon: <Tag className="h-3.5 w-3.5" />,
+                      onSelect: () => {
+                        selectSourceGroup(groupIds);
+                        setBatchTagDialogOpen(true);
                       },
-                      ...(refreshableInGroup.length > 0
-                        ? [{
-                            key: "update",
-                            label: t("mySkills.batchUpdate", { count: refreshableInGroup.length }),
-                            icon: <RotateCcw className="h-3.5 w-3.5" />,
-                            disabled: batchUpdating,
-                            onSelect: () => void handleBatchRefresh(refreshableInGroup),
-                          }]
-                        : []),
-                      {
-                        key: "delete",
-                        danger: true,
-                        label: t("mySkills.deleteSelected", { count: groupIds.length }),
-                        icon: <Trash2 className="h-3.5 w-3.5" />,
-                        onSelect: () => {
-                          selectSourceGroup(groupIds);
-                          setBatchDeleteConfirm(true);
-                        },
+                    },
+                    ...(refreshableInGroup.length > 0
+                      ? [{
+                          key: "update",
+                          label: t("mySkills.batchUpdate", { count: refreshableInGroup.length }),
+                          icon: <RotateCcw className="h-3.5 w-3.5" />,
+                          disabled: batchUpdating,
+                          onSelect: () => void handleBatchRefresh(refreshableInGroup),
+                        }]
+                      : []),
+                    {
+                      key: "delete",
+                      danger: true,
+                      label: t("mySkills.deleteSelected", { count: groupIds.length }),
+                      icon: <Trash2 className="h-3.5 w-3.5" />,
+                      onSelect: () => {
+                        selectSourceGroup(groupIds);
+                        setBatchDeleteConfirm(true);
                       },
-                    ]}
-                  />
-                </div>
+                    },
+                  ]}
+                />
               );
             }
 
