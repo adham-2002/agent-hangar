@@ -69,13 +69,22 @@ export function PluginPackSection({ packs, colors, duplicateIds, pending, onTogg
                     </span>
                   ) : null}
                 </button>
-                <ToggleSwitch
-                  checked={plugin.enabled}
-                  onChange={() => onToggle(plugin)}
-                  loading={pending.has(plugin.id)}
-                  disabled={pending.has(plugin.id)}
-                  title={t("mySkills.pluginPacks.toggle", { name: plugin.name })}
-                />
+                {plugin.scope === "synced" ? (
+                  <span
+                    title={t("plugins.syncedHint")}
+                    className="shrink-0 rounded-full border border-border-subtle px-2 py-0.5 text-[11px] text-muted"
+                  >
+                    {t("plugins.syncedBadge")}
+                  </span>
+                ) : (
+                  <ToggleSwitch
+                    checked={plugin.enabled}
+                    onChange={() => onToggle(plugin)}
+                    loading={pending.has(plugin.id)}
+                    disabled={pending.has(plugin.id)}
+                    title={t("mySkills.pluginPacks.toggle", { name: plugin.name })}
+                  />
+                )}
                 <CardActionMenu
                   label={t("mySkills.sourceGroup.actions", { source: plugin.name })}
                   actions={[

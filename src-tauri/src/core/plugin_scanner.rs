@@ -207,6 +207,20 @@ pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
         }
     }
 
+    // Plugins synced from the user's claude.ai account are not in
+    // installed_plugins.json; Claude reads them from plugins/synced instead.
+    for synced in synced_plugins(claude_home) {
+        if out.iter().any(|p| p.id == synced.id) {
+            continue;
+        }
+        // Synced plugins are on unless settings say otherwise, as Claude has it.
+        let enabled = enabled_map
+            .and_then(|m| m.get(&synced.id))
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        out.push(PluginInfo { enabled, ..synced });
+    }
+
     // Stale entries: switched on in settings but no longer installed.
     if let Some(map) = enabled_map {
         for id in map.keys() {
@@ -230,6 +244,66 @@ pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
     }
 
     Ok(out)
+}
+
+/// The plugins under `plugins/synced/<account>/`: each account folder has a
+/// `manifest.json` listing plugin folders, and each folder is an ordinary
+/// plugin whose `.claude-plugin/plugin.json` carries its real name. The id is
+/// `<name>@synced`, as `claude plugin list` reports it. Scope is `synced`, so
+/// the UI can treat them as managed by the account rather than locally.
+fn synced_plugins(claude_home: &Path) -> Vec<PluginInfo> {
+    let root = plugins_dir(claude_home).join("synced");
+    let Ok(accounts) = fs::read_dir(&root) else {
+        return vec![];
+    };
+    let mut out = Vec::new();
+    for account in accounts.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
+        let Some(manifest) = read_json(&account.join("manifest.json")).ok().flatten() else {
+            continue;
+        };
+        let entries = manifest
+            .get("plugins")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        for entry in entries {
+            let Some(folder) = entry.get("name").and_then(Value::as_str) else {
+                continue;
+            };
+            // The folder name comes from a file; keep it to one path segment.
+            if folder.is_empty() || folder.contains(['/', '\\']) || folder == ".." || folder == "." {
+                continue;
+            }
+            let dir = account.join(folder);
+            let meta = read_json(&dir.join(".claude-plugin").join("plugin.json"))
+                .ok()
+                .flatten();
+            let name = meta
+                .as_ref()
+                .and_then(|m| m.get("name"))
+                .and_then(Value::as_str)
+                .unwrap_or(folder)
+                .to_string();
+            let version = meta
+                .as_ref()
+                .and_then(|m| m.get("version"))
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            out.push(PluginInfo {
+                id: format!("{name}@synced"),
+                name,
+                marketplace: "synced".into(),
+                version,
+                scope: "synced".into(),
+                enabled: true,
+                files_present: dir.is_dir(),
+                install_path: Some(dir.to_string_lossy().to_string()),
+                installed: true,
+                source_repo: None,
+            });
+        }
+    }
+    out
 }
 
 fn sorted_names(mut v: Vec<String>) -> Vec<String> {
@@ -589,6 +663,57 @@ mod tests {
         assert_eq!(repo_of(home.path(), "rel"), None);
         write(&home.path().join("plugins/known_marketplaces.json"), "{broken");
         assert_eq!(repo_of(home.path(), "rel"), None);
+    }
+
+    fn synced_fixture(home: &Path) -> PathBuf {
+        let account = home.join("plugins/synced/acct");
+        write(
+            &account.join("manifest.json"),
+            r#"{"plugins": [{"name": "f1"}, {"name": "../escape"}, {"name": "f2"}]}"#,
+        );
+        write(
+            &account.join("f1/.claude-plugin/plugin.json"),
+            r#"{"name": "instagram", "version": "0.2.0"}"#,
+        );
+        write(&account.join("f2/.claude-plugin/plugin.json"), r#"{"name": "design"}"#);
+        account
+    }
+
+    #[test]
+    fn synced_plugins_are_listed_as_managed_and_on_by_default() {
+        let home = tempdir().unwrap();
+        let account = synced_fixture(home.path());
+        write(
+            &home.path().join("settings.json"),
+            r#"{"enabledPlugins": {"design@synced": false}}"#,
+        );
+        let list = list_plugins(home.path()).unwrap();
+        let ids: Vec<&str> = list.iter().map(|p| p.id.as_str()).collect();
+        assert_eq!(ids, vec!["instagram@synced", "design@synced"]);
+        let instagram = &list[0];
+        assert_eq!(instagram.scope, "synced");
+        assert_eq!(instagram.version.as_deref(), Some("0.2.0"));
+        assert!(instagram.enabled && instagram.installed && instagram.files_present);
+        // Compared as paths: separators differ between the fixture and a join.
+        assert_eq!(PathBuf::from(instagram.install_path.as_deref().unwrap()), account.join("f1"));
+        assert!(!list[1].enabled, "an explicit false in settings wins");
+        // The inspect path guard accepts the synced folder: it is under plugins/.
+        assert!(inspect_plugin(home.path(), &account.join("f1")).is_ok());
+    }
+
+    #[test]
+    fn synced_folder_names_cannot_leave_the_account_folder() {
+        let home = tempdir().unwrap();
+        synced_fixture(home.path());
+        let list = list_plugins(home.path()).unwrap();
+        assert!(list.iter().all(|p| !p.install_path.as_deref().unwrap_or("").contains("escape")));
+    }
+
+    #[test]
+    fn a_broken_synced_manifest_does_not_break_the_listing() {
+        let home = tempdir().unwrap();
+        write(&home.path().join("plugins/synced/acct/manifest.json"), "{nope");
+        assert!(list_plugins(home.path()).unwrap().is_empty());
     }
 
     const SETTINGS: &str = r#"{

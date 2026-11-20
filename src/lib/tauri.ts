@@ -896,3 +896,63 @@ export const getPluginDetail = (installPath: string) =>
 
 export const setPluginEnabled = (id: string, enabled: boolean) =>
   invoke<void>("set_plugin_enabled", { id, enabled });
+
+// ── Plugins: the claude CLI (install, update, remove, marketplaces) ──
+
+export interface ClaudeCliStatus {
+  available: boolean;
+  path: string | null;
+}
+
+/** A command a marketplace wants to run; it runs only after the user approves it. */
+export interface ShownCommand {
+  text: string;
+  sha256: string;
+}
+
+export interface CliOutcome {
+  ok: boolean;
+  outcome: string | null;
+  message: string | null;
+  failure_code: string | null;
+  shown_command: ShownCommand | null;
+}
+
+export interface CatalogEntry {
+  plugin_id: string;
+  name: string;
+  description: string | null;
+  marketplace: string;
+  install_count: number | null;
+  installed: boolean;
+}
+
+export interface MarketplaceInfo {
+  name: string;
+  kind: string | null;
+  location: string | null;
+}
+
+export const getClaudeCliStatus = () => invoke<ClaudeCliStatus>("get_claude_cli_status");
+
+export const getPluginCatalog = () => invoke<CatalogEntry[]>("get_plugin_catalog");
+
+export const installPlugin = (id: string, acceptCommand?: string) =>
+  invoke<CliOutcome>("install_plugin", { id, acceptCommand: acceptCommand ?? null });
+
+export const updatePlugin = (id: string, acceptCommand?: string) =>
+  invoke<CliOutcome>("update_plugin", { id, acceptCommand: acceptCommand ?? null });
+
+export const uninstallPlugin = (id: string, scope: string) =>
+  invoke<CliOutcome>("uninstall_plugin", { id, scope });
+
+export const listMarketplaces = () => invoke<MarketplaceInfo[]>("list_marketplaces");
+
+export const addMarketplace = (source: string) =>
+  invoke<CliOutcome>("add_marketplace", { source });
+
+export const removeMarketplace = (name: string) =>
+  invoke<CliOutcome>("remove_marketplace", { name });
+
+export const updateMarketplaces = (name?: string) =>
+  invoke<CliOutcome>("update_marketplaces", { name: name ?? null });

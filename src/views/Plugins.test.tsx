@@ -9,8 +9,17 @@ const api = vi.hoisted(() => ({
   listPlugins: vi.fn(),
   getPluginDetail: vi.fn(),
   setPluginEnabled: vi.fn(),
+  getClaudeCliStatus: vi.fn(),
+  getPluginCatalog: vi.fn(),
+  installPlugin: vi.fn(),
+  updatePlugin: vi.fn(),
+  uninstallPlugin: vi.fn(),
+  listMarketplaces: vi.fn(),
+  addMarketplace: vi.fn(),
+  removeMarketplace: vi.fn(),
+  updateMarketplaces: vi.fn(),
 }));
-const toast = vi.hoisted(() => ({ error: vi.fn() }));
+const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string, o?: { count?: number }) => (o?.count !== undefined ? `${key}:${o.count}` : key) }),
 }));
@@ -55,7 +64,19 @@ beforeEach(() => {
   vi.clearAllMocks();
   api.getPluginDetail.mockResolvedValue(detail);
   api.setPluginEnabled.mockResolvedValue(undefined);
+  api.getClaudeCliStatus.mockResolvedValue({ available: true, path: "/bin/claude" });
+  api.getPluginCatalog.mockResolvedValue([]);
+  api.listMarketplaces.mockResolvedValue([]);
 });
+
+const ok = { ok: true, outcome: "installed", message: null, failure_code: null, shown_command: null };
+const button = (label: string) =>
+  [...document.body.querySelectorAll("button")].find((b) => b.textContent?.includes(label)) as HTMLButtonElement;
+const openTab = async (label: string) => {
+  await act(async () => button(label).click());
+  await flush();
+  await flush();
+};
 afterEach(() => cleanup());
 
 describe("Plugins view", () => {
@@ -133,5 +154,105 @@ describe("Plugins view", () => {
     expect(document.body.textContent).toContain("SEO tools");
     expect(document.body.textContent).toContain("audit");
     expect(document.body.textContent).toContain("helper");
+  });
+
+  it("installs a catalog plugin and reloads the list", async () => {
+    api.listPlugins.mockResolvedValue([]);
+    api.getPluginCatalog.mockResolvedValue([
+      { plugin_id: "superpowers@obra", name: "superpowers", description: "Plans", marketplace: "obra", install_count: 9, installed: false },
+    ]);
+    api.installPlugin.mockResolvedValue(ok);
+    await render();
+    await openTab("plugins.tabs.browse");
+    expect(document.body.textContent).toContain("superpowers");
+    await act(async () => button("plugins.browse.install").click());
+    await flush();
+    expect(api.installPlugin).toHaveBeenCalledWith("superpowers@obra", undefined);
+    expect(toast.success).toHaveBeenCalled();
+    expect(api.listPlugins).toHaveBeenCalledTimes(2);
+  });
+
+  it("runs a marketplace-declared command only with the approved hash", async () => {
+    api.listPlugins.mockResolvedValue([]);
+    api.getPluginCatalog.mockResolvedValue([
+      { plugin_id: "risky@m", name: "risky", description: null, marketplace: "m", install_count: null, installed: false },
+    ]);
+    const hash = "f".repeat(64);
+    api.installPlugin
+      .mockResolvedValueOnce({ ...ok, ok: false, outcome: "failed", shown_command: { text: "npx risky-installer", sha256: hash } })
+      .mockResolvedValueOnce(ok);
+    await render();
+    await openTab("plugins.tabs.browse");
+    await act(async () => button("plugins.browse.install").click());
+    await flush();
+    // Nothing ran yet: the command is shown and waits for the user.
+    expect(api.installPlugin).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain("npx risky-installer");
+    await act(async () => button("plugins.ops.commandRun").click());
+    await flush();
+    expect(api.installPlugin).toHaveBeenLastCalledWith("risky@m", hash);
+    expect(toast.success).toHaveBeenCalled();
+  });
+
+  it("asks before uninstalling and passes the plugin's scope", async () => {
+    api.listPlugins.mockResolvedValue([plugin({ scope: "project" })]);
+    api.uninstallPlugin.mockResolvedValue({ ...ok, outcome: "uninstalled" });
+    const c = await render();
+    await act(async () => (c.querySelector('li button[aria-haspopup], li button[aria-label="plugins.ops.menu"]') as HTMLButtonElement | null)?.click());
+    const menu = button("plugins.ops.uninstall");
+    expect(menu).toBeTruthy();
+    await act(async () => menu.click());
+    expect(api.uninstallPlugin).not.toHaveBeenCalled();
+    const confirm = [...document.body.querySelectorAll("button")].filter((b) => b.textContent === "plugins.ops.uninstall").pop()!;
+    await act(async () => confirm.click());
+    await flush();
+    expect(api.uninstallPlugin).toHaveBeenCalledWith("seo@market", "project");
+  });
+
+  it("shows a CLI failure message instead of a success", async () => {
+    api.listPlugins.mockResolvedValue([plugin()]);
+    api.updatePlugin.mockResolvedValue({ ...ok, ok: false, outcome: "failed", message: "network down" });
+    const c = await render();
+    await act(async () => (c.querySelector('li button[aria-label="plugins.ops.menu"]') as HTMLButtonElement).click());
+    await act(async () => button("plugins.ops.update").click());
+    await flush();
+    expect(toast.error).toHaveBeenCalledWith("network down");
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("explains a missing claude command and offers no install actions", async () => {
+    api.listPlugins.mockResolvedValue([plugin()]);
+    api.getClaudeCliStatus.mockResolvedValue({ available: false, path: null });
+    const c = await render();
+    expect(c.querySelector('li button[aria-label="plugins.ops.menu"]')).toBeNull();
+    await openTab("plugins.tabs.browse");
+    expect(document.body.textContent).toContain("plugins.cli.missing");
+    expect(api.getPluginCatalog).not.toHaveBeenCalled();
+  });
+
+  it("adds a marketplace from the form", async () => {
+    api.listPlugins.mockResolvedValue([]);
+    api.addMarketplace.mockResolvedValue({ ...ok, outcome: "added" });
+    await render();
+    await openTab("plugins.tabs.marketplaces");
+    const input = document.body.querySelector('input[aria-label="plugins.markets.addPlaceholder"]') as HTMLInputElement;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, " obra/superpowers-marketplace ");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => button("plugins.markets.add").click());
+    await flush();
+    expect(api.addMarketplace).toHaveBeenCalledWith("obra/superpowers-marketplace");
+    expect(api.listMarketplaces).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a claude.ai-synced plugin as managed, with nothing to change", async () => {
+    api.listPlugins.mockResolvedValue([
+      plugin({ id: "design@synced", name: "design", marketplace: "synced", scope: "synced", install_path: "/p/d" }),
+    ]);
+    const c = await render();
+    expect(text(c)).toContain("plugins.syncedBadge");
+    expect(c.querySelector('[role="switch"]')).toBeNull();
+    expect(c.querySelector('li button[aria-label="plugins.ops.menu"]')).toBeNull();
   });
 });

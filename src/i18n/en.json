@@ -1226,6 +1226,64 @@
       "agents": "Agents",
       "mcp": "MCP servers",
       "hooks": "Includes hooks"
-    }
+    },
+    "tabs": {
+      "installed": "Installed",
+      "browse": "Browse",
+      "marketplaces": "Marketplaces"
+    },
+    "browseCta": "Browse plugins",
+    "cli": {
+      "missing": "The claude command was not found",
+      "missingHint": "Installing, updating and removing plugins runs through Claude Code. Install Claude Code with its native installer, then reopen this page. Turning plugins on or off works without it."
+    },
+    "ops": {
+      "menu": "Actions for {{name}}",
+      "update": "Update",
+      "uninstall": "Uninstall",
+      "installLabel": "Install {{name}}",
+      "updateLabel": "Update {{name}}",
+      "installed": "Installed {{name}}",
+      "updated": "Updated {{name}}",
+      "uninstalled": "Uninstalled {{name}}",
+      "failed": "The plugin operation failed",
+      "restartNote": "Applies to new Claude Code sessions.",
+      "uninstallTitle": "Uninstall {{name}}?",
+      "uninstallMessage": "Claude Code removes the plugin and everything it bundles. Its saved data is removed too. You can install it again from Browse.",
+      "commandTitle": "Run a command from the marketplace?",
+      "commandMessage": "{{action}} needs to run the command below, declared by the plugin's marketplace. It runs on this computer as you. Only continue if you trust this marketplace.",
+      "commandRun": "Run it"
+    },
+    "browse": {
+      "searchPlaceholder": "Search all plugins in your marketplaces",
+      "refreshCatalogs": "Refresh catalogs",
+      "catalogsRefreshed": "Marketplace catalogs refreshed",
+      "loading": "Loading the plugin catalog…",
+      "loadFailed": "Could not load the plugin catalog",
+      "noMatch": "No plugins match your search.",
+      "showing": "Showing {{shown}} of {{total}}",
+      "installs_one": "{{count}} install",
+      "installs_other": "{{count}} installs",
+      "installed": "Installed",
+      "install": "Install",
+      "showMore": "Show more"
+    },
+    "markets": {
+      "addPlaceholder": "owner/repo, a git URL or a local path",
+      "addHint": "A marketplace is a catalog of plugins. Its plugins appear under Browse once it is added.",
+      "add": "Add",
+      "addLabel": "Add {{source}}",
+      "added": "Added marketplace {{source}}",
+      "empty": "No marketplaces configured.",
+      "loadFailed": "Could not load marketplaces",
+      "update": "Refresh catalog",
+      "updated": "Refreshed {{name}}",
+      "remove": "Remove",
+      "removed": "Removed marketplace {{name}}",
+      "removeTitle": "Remove marketplace {{name}}?",
+      "removeMessage": "Its catalog disappears from Browse. Claude Code decides what happens to plugins already installed from it."
+    },
+    "syncedBadge": "Managed by claude.ai",
+    "syncedHint": "Synced from your claude.ai account. Change it there; Skills Manager only shows it."
   }
 }
