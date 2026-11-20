@@ -9,7 +9,7 @@ use tauri::State;
 use crate::core::claude_cli::{CatalogEntry, CliOutcome, MarketplaceInfo};
 use crate::core::error::AppError;
 use crate::core::plugin_ops::{self, ClaudeCliStatus};
-use crate::core::plugin_scanner::{PluginDetail, PluginInfo};
+use crate::core::plugin_scanner::{PluginDetail, PluginInfo, PluginSkillDocument};
 use crate::core::skill_store::SkillStore;
 
 async fn blocking<T: Send + 'static>(
@@ -26,6 +26,14 @@ pub async fn list_plugins() -> Result<Vec<PluginInfo>, AppError> {
 #[tauri::command]
 pub async fn get_plugin_detail(install_path: String) -> Result<PluginDetail, AppError> {
     blocking(move || plugin_ops::detail(&PathBuf::from(install_path))).await
+}
+
+#[tauri::command]
+pub async fn get_plugin_skill_document(
+    install_path: String,
+    skill: String,
+) -> Result<PluginSkillDocument, AppError> {
+    blocking(move || plugin_ops::skill_document(&PathBuf::from(install_path), &skill)).await
 }
 
 #[tauri::command]

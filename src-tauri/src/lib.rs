@@ -1004,6 +1004,7 @@ pub fn run() {
             // Tools
             commands::plugins::list_plugins,
             commands::plugins::get_plugin_detail,
+            commands::plugins::get_plugin_skill_document,
             commands::plugins::set_plugin_enabled,
             commands::plugins::get_claude_cli_status,
             commands::plugins::get_plugin_catalog,

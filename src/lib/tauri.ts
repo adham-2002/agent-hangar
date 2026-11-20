@@ -960,3 +960,12 @@ export const removeMarketplace = (name: string) =>
 
 export const updateMarketplaces = (name?: string) =>
   invoke<CliOutcome>("update_marketplaces", { name: name ?? null });
+
+export interface PluginSkillDocument {
+  filename: string;
+  content: string;
+}
+
+/** A bundled skill's SKILL.md, read from inside the plugin's folder. */
+export const getPluginSkillDocument = (installPath: string, skill: string) =>
+  invoke<PluginSkillDocument>("get_plugin_skill_document", { installPath, skill });

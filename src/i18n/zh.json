@@ -1280,6 +1280,9 @@
       "badgeVersion": "可更新至 {{version}}",
       "updateNow": "立即更新",
       "hint": "根据最近一次目录刷新，其市场提供了更新的版本。可在“浏览”中刷新目录再次检查。"
+    },
+    "skillSheet": {
+      "from": "来自插件 {{plugin}} · 由 Claude Code 管理"
     }
   }
 }

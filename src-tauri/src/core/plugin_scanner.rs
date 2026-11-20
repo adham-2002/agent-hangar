@@ -478,6 +478,46 @@ pub fn inspect_plugin(claude_home: &Path, install_path: &Path) -> Result<PluginD
     })
 }
 
+/// Largest SKILL.md the viewer will load; anything bigger is not a skill to read.
+const MAX_SKILL_DOC_BYTES: u64 = 1024 * 1024;
+
+/// One bundled skill's document, for reading in the app.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PluginSkillDocument {
+    pub filename: String,
+    pub content: String,
+}
+
+/// Read `skills/<skill>/SKILL.md` from a plugin's folder. The folder must be
+/// inside Claude's plugins directory and the skill name a single path
+/// segment, because both arrive from the frontend.
+pub fn read_plugin_skill(
+    claude_home: &Path,
+    install_path: &Path,
+    skill: &str,
+) -> Result<PluginSkillDocument, AppError> {
+    if !path_guard::is_path_safe(&plugins_dir(claude_home), install_path) {
+        return Err(AppError::invalid_input(
+            "Plugin path is outside the Claude plugins directory",
+        ));
+    }
+    if skill.is_empty() || skill == "." || skill == ".." || skill.contains(['/', '\\']) {
+        return Err(AppError::invalid_input(format!("Invalid skill name '{skill}'")));
+    }
+    let dir = install_path.join("skills").join(skill);
+    for filename in ["SKILL.md", "skill.md"] {
+        let path = dir.join(filename);
+        let Ok(meta) = fs::metadata(&path) else { continue };
+        if meta.len() > MAX_SKILL_DOC_BYTES {
+            return Err(AppError::invalid_input(format!("{filename} is too large to show")));
+        }
+        let content = fs::read_to_string(&path)
+            .map_err(|e| AppError::io(format!("{}: {e}", path.display())))?;
+        return Ok(PluginSkillDocument { filename: filename.to_string(), content });
+    }
+    Err(AppError::not_found(format!("No SKILL.md for '{skill}'")))
+}
+
 /// The leading whitespace of the first indented line, so a rewrite keeps the
 /// file's own indentation. Defaults to two spaces.
 fn detect_indent(text: &str) -> String {
@@ -855,6 +895,22 @@ mod tests {
         assert!(!version_newer("1.0.0", "1.0.0"));
         assert!(!version_newer("1.0.0", "1.2.0"));
         assert!(version_newer("2024-beta", "2024-alpha"), "unparsable: any difference");
+    }
+
+    #[test]
+    fn reads_a_bundled_skill_and_refuses_to_wander() {
+        let home = tempdir().unwrap();
+        let p = home.path().join("plugins/cache/m/a/1.0.0");
+        write(&p.join("skills/one/SKILL.md"), "# One");
+        let doc = read_plugin_skill(home.path(), &p, "one").unwrap();
+        assert_eq!(doc, PluginSkillDocument { filename: "SKILL.md".into(), content: "# One".into() });
+
+        assert!(read_plugin_skill(home.path(), &p, "../../../x").is_err());
+        assert!(read_plugin_skill(home.path(), &p, "..").is_err());
+        assert!(read_plugin_skill(home.path(), &p, "missing").is_err());
+        let outside = tempdir().unwrap();
+        write(&outside.path().join("skills/one/SKILL.md"), "secret");
+        assert!(read_plugin_skill(home.path(), outside.path(), "one").is_err());
     }
 
     const SETTINGS: &str = r#"{

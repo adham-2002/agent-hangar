@@ -6,6 +6,7 @@ import type { PluginPack } from "../lib/pluginPacks";
 import type { SourceColorClass } from "../lib/sourceColor";
 import { CardActionMenu } from "./CardActionMenu";
 import { ToggleSwitch } from "./ToggleSwitch";
+import { PluginSkillSheet, type PluginSkillTarget } from "./PluginSkillSheet";
 import { cn } from "../utils";
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
 export function PluginPackSection({ packs, colors, duplicateIds, pending, onToggle, onOpenPlugins }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [openSkill, setOpenSkill] = useState<PluginSkillTarget | null>(null);
   if (packs.length === 0) return null;
 
   return (
@@ -110,11 +112,19 @@ export function PluginPackSection({ packs, colors, duplicateIds, pending, onTogg
                   {skills.length > 0 ? (
                     <ul className="flex flex-wrap gap-1.5">
                       {skills.map((name) => (
-                        <li
-                          key={name}
-                          className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-secondary"
-                        >
-                          {name}
+                        <li key={name}>
+                          <button
+                            type="button"
+                            disabled={!plugin.install_path}
+                            onClick={() => {
+                              if (plugin.install_path) {
+                                setOpenSkill({ installPath: plugin.install_path, skill: name, pluginName: plugin.name });
+                              }
+                            }}
+                            className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-secondary transition-colors hover:border-border hover:bg-surface-hover hover:text-primary"
+                          >
+                            {name}
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -128,6 +138,7 @@ export function PluginPackSection({ packs, colors, duplicateIds, pending, onTogg
           );
         })}
       </ul>
+      <PluginSkillSheet target={openSkill} onClose={() => setOpenSkill(null)} />
     </section>
   );
 }

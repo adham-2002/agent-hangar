@@ -11,6 +11,7 @@ import { usePluginOperations } from "../hooks/usePluginOperations";
 import { CardActionMenu } from "../components/CardActionMenu";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetailSheet } from "../components/DetailSheet";
+import { PluginSkillSheet, type PluginSkillTarget } from "../components/PluginSkillSheet";
 import { StatusBanner } from "../components/StatusBanner";
 import { ToggleSwitch } from "../components/ToggleSwitch";
 
@@ -27,7 +28,16 @@ function bundleTotal(detail: PluginDetail | undefined) {
   };
 }
 
-function NameList({ title, items }: { title: string; items: string[] }) {
+function NameList({
+  title,
+  items,
+  onSelect,
+}: {
+  title: string;
+  items: string[];
+  /** When given, each name is a button that opens it. */
+  onSelect?: (name: string) => void;
+}) {
   if (items.length === 0) return null;
   return (
     <section className="mb-4">
@@ -36,11 +46,14 @@ function NameList({ title, items }: { title: string; items: string[] }) {
       </h3>
       <ul className="flex flex-wrap gap-1.5">
         {items.map((name) => (
-          <li
-            key={name}
-            className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-secondary"
-          >
-            {name}
+          <li key={name}>
+            {onSelect ? (
+              <button type="button" onClick={() => onSelect(name)} className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-secondary transition-colors hover:border-border hover:bg-surface-hover hover:text-primary">
+                {name}
+              </button>
+            ) : (
+              <span className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-secondary">{name}</span>
+            )}
           </li>
         ))}
       </ul>
@@ -57,6 +70,7 @@ export function Plugins() {
   const [tab, setTab] = useState<Tab>("installed");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openSkill, setOpenSkill] = useState<PluginSkillTarget | null>(null);
 
   // The claude CLI is needed only for install, update, remove and marketplaces.
   const [cliAvailable, setCliAvailable] = useState<boolean | null>(null);
@@ -614,7 +628,15 @@ export function Plugins() {
           <p className="text-[13px] text-muted">{t("plugins.filesMissingHint")}</p>
         ) : selectedDetail ? (
           <>
-            <NameList title={t("plugins.detail.skills")} items={selectedDetail.skills} />
+            <NameList
+              title={t("plugins.detail.skills")}
+              items={selectedDetail.skills}
+              onSelect={(skill) => {
+                if (selected?.install_path) {
+                  setOpenSkill({ installPath: selected.install_path, skill, pluginName: selected.name });
+                }
+              }}
+            />
             <NameList title={t("plugins.detail.commands")} items={selectedDetail.commands} />
             <NameList title={t("plugins.detail.agents")} items={selectedDetail.agents} />
             <NameList title={t("plugins.detail.mcp")} items={selectedDetail.mcp_servers} />
@@ -664,6 +686,8 @@ export function Plugins() {
           );
         }}
       />
+
+      <PluginSkillSheet target={openSkill} onClose={() => setOpenSkill(null)} />
 
       {/* A marketplace wants to run its own command: show it, run it only on approval. */}
       <ConfirmDialog

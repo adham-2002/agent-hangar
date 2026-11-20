@@ -1290,6 +1290,9 @@
       "badgeVersion": "Update to {{version}}",
       "updateNow": "Update now",
       "hint": "Its marketplace offers a newer version, as of the last catalog refresh. Refresh catalogs in Browse to check again."
+    },
+    "skillSheet": {
+      "from": "From the plugin {{plugin}} · managed by Claude Code"
     }
   }
 }

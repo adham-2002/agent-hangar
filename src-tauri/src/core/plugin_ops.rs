@@ -106,6 +106,13 @@ pub fn detail(install_path: &Path) -> Result<PluginDetail, AppError> {
     plugin_scanner::inspect_plugin(&require_home()?, install_path)
 }
 
+pub fn skill_document(
+    install_path: &Path,
+    skill: &str,
+) -> Result<plugin_scanner::PluginSkillDocument, AppError> {
+    plugin_scanner::read_plugin_skill(&require_home()?, install_path, skill)
+}
+
 pub fn set_enabled(store: &SkillStore, id: &str, enabled: bool) -> Result<(), AppError> {
     let result = require_home().and_then(|home| plugin_scanner::set_plugin_enabled(&home, id, enabled));
     let draft = AuditDraft::new(if enabled { "plugin_enable" } else { "plugin_disable" })

@@ -18,6 +18,7 @@ const api = vi.hoisted(() => ({
   addMarketplace: vi.fn(),
   removeMarketplace: vi.fn(),
   updateMarketplaces: vi.fn(),
+  getPluginSkillDocument: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
 vi.mock("react-i18next", () => ({
@@ -264,5 +265,16 @@ describe("Plugins view", () => {
     expect(text(c)).toContain("plugins.updates.badgeVersion");
     await act(async () => (c.querySelector('li button[aria-label="plugins.ops.menu"]') as HTMLButtonElement).click());
     expect(button("plugins.updates.updateNow")).toBeTruthy();
+  });
+
+  it("opens a bundled skill's document from the plugin's detail", async () => {
+    api.listPlugins.mockResolvedValue([plugin()]);
+    api.getPluginSkillDocument.mockResolvedValue({ filename: "SKILL.md", content: "# Audit\n\nChecks the site." });
+    const c = await render();
+    await act(async () => (c.querySelector("li button:not([role])") as HTMLButtonElement).click());
+    await act(async () => button("audit").click());
+    await flush();
+    expect(api.getPluginSkillDocument).toHaveBeenCalledWith("/p/seo", "audit");
+    expect(document.body.textContent).toContain("Checks the site.");
   });
 });
