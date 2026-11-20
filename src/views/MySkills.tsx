@@ -73,6 +73,7 @@ import { TagFilterPills } from "../components/TagFilterPills";
 import {
   buildSourceGroups,
   defaultGroupBySource,
+  enabledGroupsFirst,
   getSkillSourceInfo,
   sourceCandidates,
 } from "../lib/skillSource";
@@ -203,7 +204,8 @@ export function MySkills() {
   // default would hide the only skill it holds without saving a row.
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
   const [sourceSelection, setSourceSelection] = useState<Set<string>>(new Set());
-  const [filterMode, setFilterMode] = useState<"all" | "enabled" | "available">("all");
+  // A preset opens on what it actually enables; "All" is one click away.
+  const [filterMode, setFilterMode] = useState<"all" | "enabled" | "available">("enabled");
   // Which channel (`source_type`) a skill came through — git, skills.sh, a
   // site, a local install, an import. Distinct from the Source grouping below.
   const [channelFilters, setChannelFilters] = useState<Set<string>>(new Set());
@@ -325,6 +327,16 @@ export function MySkills() {
     tagFilters.size > 0 ||
     sourceSelection.size > 0 ||
     filterMode !== "all";
+  // The preset opens on "Enabled", so an empty list usually means nothing is
+  // enabled yet rather than a filter hiding skills; that gets its own message.
+  const nothingEnabledYet =
+    !!viewedPreset &&
+    filterMode === "enabled" &&
+    skills.length > 0 &&
+    normalizedQuery === "" &&
+    channelFilters.size === 0 &&
+    tagFilters.size === 0 &&
+    sourceSelection.size === 0;
   const clearFilters = () => {
     setSearch("");
     setChannelFilters(new Set());
@@ -421,13 +433,20 @@ export function MySkills() {
   // survivors alone would read `skills` again instead of `a/skills`.
   const sourceGroups = useMemo(() => {
     if (!groupBySource) return null;
-    if (sourceSelection.size === 0) return preSelectionSourceGroups;
     const labels = new Map(preSelectionSourceGroups.map((group) => [group.key, group.label]));
-    return buildSourceGroups(filtered).map((group) => {
-      const known = labels.get(group.key);
-      return known === undefined ? group : { ...group, label: known };
-    });
-  }, [groupBySource, sourceSelection.size, preSelectionSourceGroups, filtered]);
+    const groups =
+      sourceSelection.size === 0
+        ? preSelectionSourceGroups
+        : buildSourceGroups(filtered).map((group) => {
+            const known = labels.get(group.key);
+            return known === undefined ? group : { ...group, label: known };
+          });
+    // In a preset the flat list puts enabled skills first; grouped, the same
+    // holds one level up: sources with an enabled skill come before the rest.
+    return viewedPreset
+      ? enabledGroupsFirst(groups, (skill) => skill.preset_ids.includes(viewedPreset.id))
+      : groups;
+  }, [groupBySource, sourceSelection.size, preSelectionSourceGroups, filtered, viewedPreset]);
 
   // A search forces every Source open: a query that matched something inside a
   // collapsed group would otherwise look like no match at all.
@@ -1605,14 +1624,28 @@ export function MySkills() {
       {filtered.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center pb-20 text-center">
           <Layers className="mb-4 h-12 w-12 text-faint" />
-          <h3 className="mb-1.5 text-[14px] font-semibold text-tertiary">{t("mySkills.noSkills")}</h3>
-          <p className="text-[13px] text-muted">
-            {skills.length === 0 ? t("mySkills.addFirst") : t("mySkills.noMatch")}
-          </p>
-          {hasActiveFilters && (
-            <button onClick={clearFilters} className="app-button-secondary mt-4">
-              {t("mySkills.clearFilters")}
-            </button>
+          {nothingEnabledYet ? (
+            <>
+              <h3 className="mb-1.5 text-[14px] font-semibold text-tertiary">
+                {t("mySkills.presetEmpty.title")}
+              </h3>
+              <p className="text-[13px] text-muted">{t("mySkills.presetEmpty.hint")}</p>
+              <button onClick={() => setFilterMode("all")} className="app-button-secondary mt-4">
+                {t("mySkills.presetEmpty.showAll")}
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="mb-1.5 text-[14px] font-semibold text-tertiary">{t("mySkills.noSkills")}</h3>
+              <p className="text-[13px] text-muted">
+                {skills.length === 0 ? t("mySkills.addFirst") : t("mySkills.noMatch")}
+              </p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="app-button-secondary mt-4">
+                  {t("mySkills.clearFilters")}
+                </button>
+              )}
+            </>
           )}
         </div>
       ) : (

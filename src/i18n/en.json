@@ -510,6 +510,11 @@
       "disablePlugin": "Turn off plugin",
       "removeLibrary_one": "Remove {{count}} library skill from Claude Code",
       "removeLibrary_other": "Remove {{count}} library skills from Claude Code"
+    },
+    "presetEmpty": {
+      "title": "Nothing is enabled in this preset yet",
+      "hint": "Show all skills to pick the ones this preset should enable.",
+      "showAll": "Show all skills"
     }
   },
   "install": {

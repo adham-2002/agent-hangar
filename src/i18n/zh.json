@@ -505,6 +505,11 @@
       "description_other": "Claude Code 会重复加载 {{count}} 个 Skill：{{names}}",
       "disablePlugin": "关闭插件",
       "removeLibrary_other": "从 Claude Code 移除 {{count}} 个库中 Skill"
+    },
+    "presetEmpty": {
+      "title": "此 Preset 还没有启用任何 Skill",
+      "hint": "显示全部 Skill，选择此 Preset 要启用的 Skill。",
+      "showAll": "显示全部 Skill"
     }
   },
   "install": {

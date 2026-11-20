@@ -280,3 +280,16 @@ export function defaultGroupBySource(groups: SkillSourceGroup[]): boolean {
 export function gitSourceKey(ref: string): string | null {
   return parseGitRef(ref)?.key ?? null;
 }
+
+/**
+ * Groups holding at least one enabled skill first, the rest after, each part
+ * keeping its order (Array.prototype.sort is stable). Inside a group the
+ * caller's order stands, which already lists enabled skills first.
+ */
+export function enabledGroupsFirst(
+  groups: SkillSourceGroup[],
+  isEnabled: (skill: ManagedSkill) => boolean,
+): SkillSourceGroup[] {
+  const rank = (group: SkillSourceGroup) => (group.skills.some(isEnabled) ? 0 : 1);
+  return [...groups].sort((a, b) => rank(a) - rank(b));
+}
