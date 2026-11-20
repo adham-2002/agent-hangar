@@ -8,7 +8,7 @@ use app_lib::commands::{
 };
 use app_lib::core::{
     app_state, audit_log::AuditDraft, central_repo, error::AppError, git_backup, git_fetcher,
-    installer, merge, repo_lock::RepoLock, scenario_service, skill_metadata,
+    installer, merge, plugin_ops, repo_lock::RepoLock, scenario_service, skill_metadata,
     skill_store::SkillStore, skillssh_api, sync_engine, sync_metadata, tool_adapters, tool_service,
     well_known,
 };
@@ -37,6 +37,90 @@ enum Commands {
     Presets(PresetArgs),
     Git(GitArgs),
     Projects(ProjectsArgs),
+    /// Claude Code plugins: list, turn on or off, install, update, remove,
+    /// and manage the marketplaces they come from.
+    Plugins(PluginsArgs),
+}
+
+#[derive(Args, Debug)]
+struct PluginsArgs {
+    #[command(subcommand)]
+    command: PluginsCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum PluginsCommand {
+    /// Installed plugins, with their on/off state.
+    List,
+    /// One installed plugin and what it bundles.
+    Show { id: String },
+    /// Turn an installed plugin on for new Claude Code sessions.
+    Enable {
+        id: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Turn an installed plugin off for new Claude Code sessions.
+    Disable {
+        id: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Search the catalogs of every configured marketplace.
+    Search {
+        query: Option<String>,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Install a plugin (`name@marketplace`).
+    Install {
+        id: String,
+        /// The sha256 of a marketplace-declared command the user has seen and approved.
+        #[arg(long, value_name = "SHA256")]
+        accept_command: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Update an installed plugin.
+    Update {
+        id: String,
+        #[arg(long, value_name = "SHA256")]
+        accept_command: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Uninstall a plugin.
+    Uninstall {
+        id: String,
+        #[arg(long, default_value = "user")]
+        scope: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    #[command(subcommand)]
+    Marketplaces(MarketplacesCommand),
+}
+
+#[derive(Subcommand, Debug)]
+enum MarketplacesCommand {
+    List,
+    /// Add a marketplace from `owner/repo`, a git URL or a local path.
+    Add {
+        source: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    Remove {
+        name: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Refresh one marketplace's catalog, or all of them.
+    Update {
+        name: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Args, Debug)]
@@ -825,6 +909,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
         Commands::Presets(args) => run_presets(args, &store, cli.json),
         Commands::Git(args) => run_git(args, &store, cli.skills_root.is_some(), cli.json),
         Commands::Projects(args) => run_projects(args, &store, cli.json),
+        Commands::Plugins(args) => run_plugins(args, &store, cli.json),
     }
 }
 
@@ -852,6 +937,159 @@ fn repo_status(store: &SkillStore) -> RepoStatus {
         pending_base_dir: central_repo::pending_base_dir()
             .map(|path| path.to_string_lossy().to_string()),
     }
+}
+
+// ── plugins ───────────────────────────────────────────────────────────────
+
+/// What a `--dry-run` reports: the operation and its target, nothing run.
+#[derive(Serialize)]
+struct PluginDryRun<'a> {
+    dry_run: bool,
+    action: &'a str,
+    target: &'a str,
+}
+
+/// A marketplace wants to run its own command. Nothing ran: the agent has to
+/// show `command` to the user and, only if they approve, run again with
+/// `--accept-command <sha256>`.
+#[derive(Serialize)]
+struct NeedsApproval<'a> {
+    ok: bool,
+    needs_approval: bool,
+    command: &'a str,
+    sha256: &'a str,
+    hint: &'static str,
+}
+
+/// Exit code for "waiting for the user's approval", distinct from failure (1)
+/// and bad arguments (2), so a script can tell them apart.
+const EXIT_NEEDS_APPROVAL: i32 = 3;
+
+fn plugin_outcome(outcome: app_lib::core::claude_cli::CliOutcome, json: bool) -> anyhow::Result<()> {
+    if let Some(shown) = &outcome.shown_command {
+        print_json(
+            &NeedsApproval {
+                ok: false,
+                needs_approval: true,
+                command: &shown.text,
+                sha256: &shown.sha256,
+                hint: "Show this command to the user. Run again with --accept-command <sha256> only if they approve it.",
+            },
+            json,
+        );
+        std::process::exit(EXIT_NEEDS_APPROVAL);
+    }
+    if !outcome.ok {
+        bail!(outcome
+            .message
+            .unwrap_or_else(|| "the claude plugin command failed".into()));
+    }
+    print_json(&outcome, json);
+    Ok(())
+}
+
+fn find_installed_plugin(id: &str) -> anyhow::Result<app_lib::core::plugin_scanner::PluginInfo> {
+    plugin_ops::list()
+        .map_err(map_app_err)?
+        .into_iter()
+        .find(|p| p.id == id || p.name == id)
+        .ok_or_else(|| anyhow!("no installed plugin '{id}' (see `plugins list`)"))
+}
+
+fn run_plugins(args: PluginsArgs, store: &SkillStore, json: bool) -> anyhow::Result<()> {
+    let dry = |action: &str, target: &str| -> anyhow::Result<()> {
+        print_json(&PluginDryRun { dry_run: true, action, target }, json);
+        Ok(())
+    };
+    match args.command {
+        PluginsCommand::List => print_json(&plugin_ops::list().map_err(map_app_err)?, json),
+        PluginsCommand::Show { id } => {
+            let plugin = find_installed_plugin(&id)?;
+            let detail = match plugin.install_path.as_deref() {
+                Some(path) if plugin.files_present => {
+                    Some(plugin_ops::detail(Path::new(path)).map_err(map_app_err)?)
+                }
+                _ => None,
+            };
+            print_json(&serde_json::json!({ "plugin": plugin, "detail": detail }), json);
+        }
+        PluginsCommand::Enable { id, dry_run: true } => {
+            return dry("enable", &find_installed_plugin(&id)?.id);
+        }
+        PluginsCommand::Disable { id, dry_run: true } => {
+            return dry("disable", &find_installed_plugin(&id)?.id);
+        }
+        PluginsCommand::Enable { id, .. } => {
+            let plugin = find_installed_plugin(&id)?;
+            plugin_ops::set_enabled(store, &plugin.id, true).map_err(map_app_err)?;
+            print_json(&serde_json::json!({ "ok": true, "id": plugin.id, "enabled": true }), json);
+        }
+        PluginsCommand::Disable { id, .. } => {
+            let plugin = find_installed_plugin(&id)?;
+            plugin_ops::set_enabled(store, &plugin.id, false).map_err(map_app_err)?;
+            print_json(&serde_json::json!({ "ok": true, "id": plugin.id, "enabled": false }), json);
+        }
+        PluginsCommand::Search { query, limit } => {
+            let words: Vec<String> = query
+                .unwrap_or_default()
+                .to_lowercase()
+                .split_whitespace()
+                .map(str::to_string)
+                .collect();
+            let mut hits: Vec<_> = plugin_ops::catalog()
+                .map_err(map_app_err)?
+                .into_iter()
+                .filter(|e| {
+                    let hay = format!(
+                        "{} {} {}",
+                        e.name,
+                        e.marketplace,
+                        e.description.as_deref().unwrap_or("")
+                    )
+                    .to_lowercase();
+                    words.iter().all(|w| hay.contains(w.as_str()))
+                })
+                .collect();
+            hits.sort_by(|a, b| b.install_count.unwrap_or(0).cmp(&a.install_count.unwrap_or(0)));
+            hits.truncate(limit);
+            print_json(&hits, json);
+        }
+        PluginsCommand::Install { id, dry_run: true, .. } => return dry("install", &id),
+        PluginsCommand::Install { id, accept_command, .. } => {
+            return plugin_outcome(plugin_ops::install(store, &id, accept_command).map_err(map_app_err)?, json);
+        }
+        PluginsCommand::Update { id, dry_run: true, .. } => return dry("update", &id),
+        PluginsCommand::Update { id, accept_command, .. } => {
+            return plugin_outcome(plugin_ops::update(store, &id, accept_command).map_err(map_app_err)?, json);
+        }
+        PluginsCommand::Uninstall { id, dry_run: true, .. } => return dry("uninstall", &id),
+        PluginsCommand::Uninstall { id, scope, .. } => {
+            return plugin_outcome(plugin_ops::uninstall(store, &id, &scope).map_err(map_app_err)?, json);
+        }
+        PluginsCommand::Marketplaces(command) => match command {
+            MarketplacesCommand::List => {
+                print_json(&plugin_ops::marketplaces().map_err(map_app_err)?, json)
+            }
+            MarketplacesCommand::Add { source, dry_run: true } => return dry("marketplace_add", &source),
+            MarketplacesCommand::Add { source, .. } => {
+                return plugin_outcome(plugin_ops::marketplace_add(store, &source).map_err(map_app_err)?, json);
+            }
+            MarketplacesCommand::Remove { name, dry_run: true } => return dry("marketplace_remove", &name),
+            MarketplacesCommand::Remove { name, .. } => {
+                return plugin_outcome(plugin_ops::marketplace_remove(store, &name).map_err(map_app_err)?, json);
+            }
+            MarketplacesCommand::Update { name, dry_run: true } => {
+                return dry("marketplace_update", name.as_deref().unwrap_or("all"));
+            }
+            MarketplacesCommand::Update { name, .. } => {
+                return plugin_outcome(
+                    plugin_ops::marketplace_update(store, name.as_deref()).map_err(map_app_err)?,
+                    json,
+                );
+            }
+        },
+    }
+    Ok(())
 }
 
 // ── tools ─────────────────────────────────────────────────────────────────
@@ -3746,6 +3984,46 @@ fn print_json<T: Serialize>(value: &T, json: bool) {
         serde_json::to_string_pretty(value).unwrap()
     };
     println!("{rendered}");
+}
+
+#[cfg(test)]
+mod plugin_cli_tests {
+    use super::*;
+
+    #[test]
+    fn plugin_commands_parse() {
+        let cli = Cli::try_parse_from([
+            "skills-manager-cli", "--json", "plugins", "install", "a@m", "--accept-command", "ab12",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Plugins(PluginsArgs {
+                command: PluginsCommand::Install { id, accept_command, dry_run },
+            }) => {
+                assert_eq!(id, "a@m");
+                assert_eq!(accept_command.as_deref(), Some("ab12"));
+                assert!(!dry_run);
+            }
+            other => panic!("parsed as {other:?}"),
+        }
+        assert!(Cli::try_parse_from(["skills-manager-cli", "plugins", "marketplaces", "update"]).is_ok());
+        assert!(Cli::try_parse_from(["skills-manager-cli", "plugins", "search"]).is_ok());
+        assert!(Cli::try_parse_from(["skills-manager-cli", "plugins", "install"]).is_err());
+    }
+
+    #[test]
+    fn a_dry_run_changes_nothing_and_logs_nothing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = SkillStore::new(&tmp.path().join("skills.db")).unwrap();
+        for command in [
+            PluginsCommand::Install { id: "a@m".into(), accept_command: None, dry_run: true },
+            PluginsCommand::Uninstall { id: "a@m".into(), scope: "user".into(), dry_run: true },
+            PluginsCommand::Marketplaces(MarketplacesCommand::Add { source: "o/r".into(), dry_run: true }),
+        ] {
+            run_plugins(PluginsArgs { command }, &store, true).unwrap();
+        }
+        assert!(store.list_audit(None).unwrap().is_empty());
+    }
 }
 
 #[cfg(test)]
