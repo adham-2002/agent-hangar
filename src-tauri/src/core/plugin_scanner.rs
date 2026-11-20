@@ -35,6 +35,12 @@ pub struct PluginInfo {
     /// resolved through its marketplace. Used to recognise the same pack
     /// installed as library skills. None when it cannot be determined.
     pub source_repo: Option<String>,
+    /// The newest version the marketplace offers, when it states one.
+    pub latest_version: Option<String>,
+    /// The marketplace offers something newer than what is installed. Read
+    /// from the marketplace's local copy, so it is as fresh as the last
+    /// catalog refresh.
+    pub update_available: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, PartialEq)]
@@ -95,17 +101,31 @@ fn marketplace_repo(source: &Value) -> Option<String> {
     }
 }
 
-/// Where a plugin's files come from, per its marketplace's `marketplace.json`:
-/// a path inside the marketplace repo (`"./x"`), `{source: github, repo}`, or
-/// `{source: url | git-subdir, url}`. Anything unreadable yields None; this is
-/// a hint for matching, never a reason to fail the listing.
-fn resolve_source_repo(
+/// What a plugin's marketplace says about it.
+#[derive(Debug, Default, PartialEq)]
+struct MarketplaceEntry {
+    /// The git repository the plugin comes from.
+    source_repo: Option<String>,
+    /// The commit the marketplace pins, for a plugin from its own repository.
+    latest_sha: Option<String>,
+    /// The version the marketplace's copy carries, for a plugin stored inside
+    /// the marketplace repository (or one the entry states outright).
+    latest_version: Option<String>,
+}
+
+/// Look a plugin up in its marketplace's `marketplace.json`. Its source is a
+/// path inside the marketplace repo (`"./x"`), `{source: github, repo}`, or
+/// `{source: url | git-subdir, url, sha}`. Anything unreadable yields empty
+/// fields: this informs matching and update hints, it never fails a listing.
+fn resolve_marketplace_entry(
     claude_home: &Path,
     marketplaces: Option<&Value>,
     marketplace: &str,
     plugin: &str,
-) -> Option<String> {
-    let entry = marketplaces?.get(marketplace)?;
+) -> MarketplaceEntry {
+    let Some(entry) = marketplaces.and_then(|m| m.get(marketplace)) else {
+        return MarketplaceEntry::default();
+    };
     let market_repo = entry.get("source").and_then(marketplace_repo);
 
     let location = entry
@@ -116,28 +136,82 @@ fn resolve_source_repo(
     let manifest = read_json(&location.join(".claude-plugin").join("marketplace.json"))
         .ok()
         .flatten();
-    let source = manifest
+    let listed = manifest
         .as_ref()
         .and_then(|m| m.get("plugins"))
         .and_then(Value::as_array)
         .and_then(|list| {
             list.iter()
                 .find(|p| p.get("name").and_then(Value::as_str) == Some(plugin))
-        })
-        .and_then(|p| p.get("source"));
+        });
+    let source = listed.and_then(|p| p.get("source"));
+    let stated_version = listed
+        .and_then(|p| p.get("version"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
 
     match source {
-        Some(Value::String(_)) | None => market_repo,
-        Some(obj) => match obj.get("source").and_then(Value::as_str) {
-            Some("github") => obj
-                .get("repo")
-                .and_then(Value::as_str)
-                .map(|repo| format!("https://github.com/{repo}")),
-            _ => obj
-                .get("url")
-                .and_then(Value::as_str)
-                .map(str::to_string)
-                .or(market_repo),
+        Some(Value::String(rel)) => {
+            // Stored in the marketplace repo: its copy there is the latest. The
+            // path comes from a file, so it has to stay inside that repo.
+            let dir = location.join(rel);
+            let copy_version = if path_guard::is_path_safe(&location, &dir) {
+                read_json(&dir.join(".claude-plugin").join("plugin.json"))
+                    .ok()
+                    .flatten()
+                    .and_then(|m| m.get("version").and_then(Value::as_str).map(str::to_string))
+            } else {
+                None
+            };
+            MarketplaceEntry {
+                source_repo: market_repo,
+                latest_sha: None,
+                latest_version: stated_version.or(copy_version),
+            }
+        }
+        None => MarketplaceEntry {
+            source_repo: market_repo,
+            latest_sha: None,
+            latest_version: stated_version,
+        },
+        Some(obj) => MarketplaceEntry {
+            source_repo: match obj.get("source").and_then(Value::as_str) {
+                Some("github") => obj
+                    .get("repo")
+                    .and_then(Value::as_str)
+                    .map(|repo| format!("https://github.com/{repo}")),
+                _ => obj
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+                    .or(market_repo),
+            },
+            latest_sha: obj.get("sha").and_then(Value::as_str).map(str::to_string),
+            latest_version: stated_version,
+        },
+    }
+}
+
+/// Whether `latest` is newer than `installed`: numerically per dotted part
+/// when both parse that way (`1.10.0` > `1.9.0`), otherwise any difference.
+fn version_newer(latest: &str, installed: &str) -> bool {
+    let parse = |v: &str| -> Option<Vec<u64>> {
+        v.trim_start_matches('v').split('.').map(|p| p.parse().ok()).collect()
+    };
+    match (parse(latest), parse(installed)) {
+        (Some(a), Some(b)) => a > b,
+        _ => latest != installed,
+    }
+}
+
+/// Update hint for one installed plugin. A pinned commit is the precise
+/// signal; a version is the fallback. Unknown on either side means no hint.
+fn update_available(entry: &MarketplaceEntry, installed_sha: Option<&str>, installed_version: Option<&str>) -> bool {
+    match (entry.latest_sha.as_deref(), installed_sha) {
+        (Some(latest), Some(have)) => !latest.eq_ignore_ascii_case(have),
+        _ => match (entry.latest_version.as_deref(), installed_version) {
+            (Some(latest), Some(have)) => version_newer(latest, have),
+            _ => false,
         },
     }
 }
@@ -180,17 +254,21 @@ pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
                 .and_then(Value::as_str)
                 .map(str::to_string);
             let (name, marketplace) = split_id(id);
-            let source_repo =
-                resolve_source_repo(claude_home, marketplaces.as_ref(), &marketplace, &name);
+            let market =
+                resolve_marketplace_entry(claude_home, marketplaces.as_ref(), &marketplace, &name);
+            let version = entry
+                .and_then(|e| e.get("version"))
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            let installed_sha = entry.and_then(|e| e.get("gitCommitSha")).and_then(Value::as_str);
             out.push(PluginInfo {
                 id: id.clone(),
                 name,
                 marketplace,
-                source_repo,
-                version: entry
-                    .and_then(|e| e.get("version"))
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
+                update_available: update_available(&market, installed_sha, version.as_deref()),
+                latest_version: market.latest_version.clone(),
+                source_repo: market.source_repo,
+                version,
                 scope: entry
                     .and_then(|e| e.get("scope"))
                     .and_then(Value::as_str)
@@ -239,6 +317,8 @@ pub fn list_plugins(claude_home: &Path) -> Result<Vec<PluginInfo>, AppError> {
                 installed: false,
                 files_present: false,
                 source_repo: None,
+                latest_version: None,
+                update_available: false,
             });
         }
     }
@@ -300,6 +380,8 @@ fn synced_plugins(claude_home: &Path) -> Vec<PluginInfo> {
                 install_path: Some(dir.to_string_lossy().to_string()),
                 installed: true,
                 source_repo: None,
+                latest_version: None,
+                update_available: false,
             });
         }
     }
@@ -714,6 +796,65 @@ mod tests {
         let home = tempdir().unwrap();
         write(&home.path().join("plugins/synced/acct/manifest.json"), "{nope");
         assert!(list_plugins(home.path()).unwrap().is_empty());
+    }
+
+    fn installed_with(home: &Path, plugin: &str, version: &str, sha: &str) {
+        write(
+            &home.join("plugins/installed_plugins.json"),
+            &format!(
+                r#"{{"plugins": {{"{plugin}@m": [{{"scope": "user", "installPath": "/x", "version": "{version}", "gitCommitSha": "{sha}"}}]}}}}"#
+            ),
+        );
+    }
+
+    #[test]
+    fn update_hint_for_a_plugin_stored_in_the_marketplace_repo() {
+        let home = tempdir().unwrap();
+        marketplace_fixture(home.path(), r#"{"plugins": [{"name": "rel", "source": "./plugins/rel"}]}"#);
+        write(
+            &home.path().join("plugins/marketplaces/m/plugins/rel/.claude-plugin/plugin.json"),
+            r#"{"version": "1.10.0"}"#,
+        );
+        installed_with(home.path(), "rel", "1.9.0", "aaa");
+        let p = &list_plugins(home.path()).unwrap()[0];
+        assert!(p.update_available, "1.10.0 is newer than 1.9.0");
+        assert_eq!(p.latest_version.as_deref(), Some("1.10.0"));
+
+        installed_with(home.path(), "rel", "1.10.0", "aaa");
+        assert!(!list_plugins(home.path()).unwrap()[0].update_available);
+    }
+
+    #[test]
+    fn update_hint_from_a_pinned_commit() {
+        let home = tempdir().unwrap();
+        marketplace_fixture(
+            home.path(),
+            r#"{"plugins": [{"name": "gh", "source": {"source": "url", "url": "https://x/y.git", "sha": "BBB"}}]}"#,
+        );
+        installed_with(home.path(), "gh", "1.0.0", "aaa");
+        assert!(list_plugins(home.path()).unwrap()[0].update_available);
+        installed_with(home.path(), "gh", "1.0.0", "bbb");
+        assert!(!list_plugins(home.path()).unwrap()[0].update_available, "same commit, any case");
+    }
+
+    #[test]
+    fn no_update_hint_when_nothing_is_known_or_the_path_escapes() {
+        let home = tempdir().unwrap();
+        marketplace_fixture(home.path(), r#"{"plugins": [{"name": "esc", "source": "../../outside"}]}"#);
+        write(&home.path().join("plugins/outside/.claude-plugin/plugin.json"), r#"{"version": "9.9.9"}"#);
+        installed_with(home.path(), "esc", "1.0.0", "aaa");
+        let p = &list_plugins(home.path()).unwrap()[0];
+        assert!(!p.update_available);
+        assert_eq!(p.latest_version, None);
+    }
+
+    #[test]
+    fn versions_compare_numerically() {
+        assert!(version_newer("1.10.0", "1.9.9"));
+        assert!(version_newer("v2.0", "1.99"));
+        assert!(!version_newer("1.0.0", "1.0.0"));
+        assert!(!version_newer("1.0.0", "1.2.0"));
+        assert!(version_newer("2024-beta", "2024-alpha"), "unparsable: any difference");
     }
 
     const SETTINGS: &str = r#"{

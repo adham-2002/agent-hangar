@@ -877,6 +877,10 @@ export interface PluginInfo {
   installed: boolean;
   files_present: boolean;
   source_repo: string | null;
+  /** The newest version its marketplace offers, when it states one. */
+  latest_version: string | null;
+  /** Newer than installed, as of the last marketplace catalog refresh. */
+  update_available: boolean;
 }
 
 export interface PluginDetail {

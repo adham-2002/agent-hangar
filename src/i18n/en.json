@@ -1284,6 +1284,12 @@
       "removeMessage": "Its catalog disappears from Browse. Claude Code decides what happens to plugins already installed from it."
     },
     "syncedBadge": "Managed by claude.ai",
-    "syncedHint": "Synced from your claude.ai account. Change it there; Skills Manager only shows it."
+    "syncedHint": "Synced from your claude.ai account. Change it there; Skills Manager only shows it.",
+    "updates": {
+      "badge": "Update available",
+      "badgeVersion": "Update to {{version}}",
+      "updateNow": "Update now",
+      "hint": "Its marketplace offers a newer version, as of the last catalog refresh. Refresh catalogs in Browse to check again."
+    }
   }
 }

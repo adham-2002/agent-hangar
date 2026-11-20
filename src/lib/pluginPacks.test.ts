@@ -24,6 +24,8 @@ const plugin = (over: Partial<PluginInfo> = {}): PluginInfo => ({
   install_path: "/p",
   installed: true,
   files_present: true,
+  latest_version: null,
+  update_available: false,
   source_repo: "https://github.com/AgriciDaniel/claude-seo",
   ...over,
 });

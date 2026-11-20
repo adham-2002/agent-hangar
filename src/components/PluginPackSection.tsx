@@ -63,6 +63,14 @@ export function PluginPackSection({ packs, colors, duplicateIds, pending, onTogg
                       {t("mySkills.pluginPacks.alsoInLibrary")}
                     </span>
                   ) : null}
+                  {plugin.update_available ? (
+                    <span
+                      title={t("plugins.updates.hint")}
+                      className="shrink-0 rounded-full border border-accent/30 bg-accent-bg px-2 py-0.5 text-[11px] font-medium text-accent"
+                    >
+                      {t("plugins.updates.badge")}
+                    </span>
+                  ) : null}
                   {!plugin.files_present ? (
                     <span className="shrink-0 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-300">
                       {t("plugins.filesMissing")}

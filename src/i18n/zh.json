@@ -1274,6 +1274,12 @@
       "removeMessage": "其目录将从“浏览”中消失。已从中安装的插件如何处理由 Claude Code 决定。"
     },
     "syncedBadge": "由 claude.ai 管理",
-    "syncedHint": "从你的 claude.ai 账户同步。请在那里修改；Skills Manager 只负责显示。"
+    "syncedHint": "从你的 claude.ai 账户同步。请在那里修改；Skills Manager 只负责显示。",
+    "updates": {
+      "badge": "有可用更新",
+      "badgeVersion": "可更新至 {{version}}",
+      "updateNow": "立即更新",
+      "hint": "根据最近一次目录刷新，其市场提供了更新的版本。可在“浏览”中刷新目录再次检查。"
+    }
   }
 }

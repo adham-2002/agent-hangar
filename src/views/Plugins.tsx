@@ -280,6 +280,16 @@ export function Plugins() {
                         <span className="rounded-full border border-border-subtle px-2 py-0.5 text-[11px] text-muted">
                           {plugin.scope}
                         </span>
+                        {plugin.update_available ? (
+                          <span
+                            title={t("plugins.updates.hint")}
+                            className="rounded-full border border-accent/30 bg-accent-bg px-2 py-0.5 text-[11px] font-medium text-accent"
+                          >
+                            {plugin.latest_version
+                              ? t("plugins.updates.badgeVersion", { version: plugin.latest_version })
+                              : t("plugins.updates.badge")}
+                          </span>
+                        ) : null}
                         {!plugin.installed ? (
                           <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-300">
                             {t("plugins.notInstalled")}
@@ -321,7 +331,9 @@ export function Plugins() {
                         actions={[
                           {
                             key: "update",
-                            label: t("plugins.ops.update"),
+                            label: plugin.update_available
+                              ? t("plugins.updates.updateNow")
+                              : t("plugins.ops.update"),
                             icon: <RotateCcw className="h-3.5 w-3.5" />,
                             disabled: opBusy,
                             onSelect: () => void update(plugin),

@@ -36,6 +36,8 @@ const plugin = (over: Partial<PluginInfo> = {}): PluginInfo => ({
   install_path: "/p/seo",
   installed: true,
   files_present: true,
+  latest_version: null,
+  update_available: false,
   source_repo: null,
   ...over,
 });
@@ -254,5 +256,13 @@ describe("Plugins view", () => {
     expect(text(c)).toContain("plugins.syncedBadge");
     expect(c.querySelector('[role="switch"]')).toBeNull();
     expect(c.querySelector('li button[aria-label="plugins.ops.menu"]')).toBeNull();
+  });
+
+  it("flags an available update and offers it first in the menu", async () => {
+    api.listPlugins.mockResolvedValue([plugin({ update_available: true, latest_version: "2.7.0" })]);
+    const c = await render();
+    expect(text(c)).toContain("plugins.updates.badgeVersion");
+    await act(async () => (c.querySelector('li button[aria-label="plugins.ops.menu"]') as HTMLButtonElement).click());
+    expect(button("plugins.updates.updateNow")).toBeTruthy();
   });
 });
