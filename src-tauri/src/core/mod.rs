@@ -1,3 +1,4 @@
+pub mod agent_memory;
 pub mod app_state;
 pub mod audit_log;
 pub mod auto_backup;

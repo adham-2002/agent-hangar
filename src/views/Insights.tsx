@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
+  Brain,
   ChevronDown,
   ChevronRight,
   FolderInput,
@@ -17,7 +19,7 @@ import { toast } from "sonner";
 import { cn } from "../utils";
 import { useApp } from "../context/AppContext";
 import * as api from "../lib/tauri";
-import type { ContextCosts, SkillQuality, UsageReport } from "../lib/tauri";
+import type { ContextCosts, MemoryReport, SkillQuality, UsageReport } from "../lib/tauri";
 import { getErrorMessage } from "../lib/error";
 import { buildSourceGroups } from "../lib/skillSource";
 import { assignSourceColors } from "../lib/sourceColor";
@@ -61,6 +63,7 @@ export function Insights() {
   const [costs, setCosts] = useState<ContextCosts | null>(null);
   const [quality, setQuality] = useState<SkillQuality[] | null>(null);
   const [home, setHome] = useState<string | null>(null);
+  const [memory, setMemory] = useState<MemoryReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({ [CLAUDE_CODE]: true });
@@ -89,6 +92,11 @@ export function Insights() {
   const load = useCallback(async () => {
     setLoading(true);
     void loadQuality();
+    // Optional, like the quality check: the budget never waits on it.
+    api
+      .getAgentMemory()
+      .then(setMemory)
+      .catch(() => setMemory(null));
     try {
       const [usage, contextCosts] = await Promise.all([api.getSkillUsage(), api.getContextCosts()]);
       setReport(usage);
@@ -259,6 +267,18 @@ export function Insights() {
             <h2 className="text-[14px] font-semibold text-primary">{t("insights.budget.title")}</h2>
           </div>
           <p className="text-[12px] text-muted">{t("insights.budget.hint")}</p>
+          {memory && (memory.global_always_on > 0 || memory.projects.length > 0) ? (
+            <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-muted">
+              <Brain className="h-3.5 w-3.5" />
+              {t("insights.memoryNote", {
+                global: formatTokens(memory.global_always_on),
+                project: formatTokens(memory.projects.reduce((n, p) => Math.max(n, p.always_on), 0)),
+              })}
+              <Link to="/memory" className="font-medium text-accent-light hover:underline">
+                {t("insights.memoryLink")}
+              </Link>
+            </p>
+          ) : null}
           {budgets.length === 0 ? (
             <p className="text-[13px] text-muted">{t("insights.budget.empty")}</p>
           ) : (

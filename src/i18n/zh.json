@@ -10,6 +10,7 @@
     "installSkills": "安装 Skills",
     "plugins": "插件",
     "insights": "洞察",
+    "memory": "记忆",
     "backup": "备份",
     "presets": "Preset",
     "newPreset": "新建 Preset",
@@ -1350,7 +1351,9 @@
       "none_other": "你的 {{count}} 个技能中没有发现问题。",
       "tips_other": "{{count}} 个技能有改进建议",
       "edit": "编辑"
-    }
+    },
+    "memoryNote": "Claude Code 还会加载你的指令和记忆：每次会话从全局 CLAUDE.md 加载 {{global}}，在项目中最多再加载 {{project}}。",
+    "memoryLink": "审阅记忆"
   },
   "authoring": {
     "newSkill": "新建技能",
@@ -1402,7 +1405,64 @@
       "broken_link": "说明链接到 {{target}}，但它不在技能文件夹中。",
       "invisible_chars": "SKILL.md 含有 {{count}} 个不可见字符，第一个在第 {{line}} 行。它们可以对你隐藏文字，而智能体仍会读到。",
       "duplicate_name": "{{other}} 的名称相同。同时拥有两者的智能体只能看到其中一个。",
-      "description_overlap": "描述与 {{other}} 的有 {{percent}}% 相同。智能体可能选错。"
+      "description_overlap": "描述与 {{other}} 的有 {{percent}}% 相同。智能体可能选错。",
+      "secret_like": "似乎包含 {{kind}}。这里的内容每次被读取都会发送给模型；请删除它并更换密钥。",
+      "instructions_large": "每次会话都会加载约 {{tokens}} 个 token。把很少用到的部分移到 Skill 中，仅在使用时加载。",
+      "not_in_index": "MEMORY.md 中没有提到它，所以 Claude 不知道它的存在。",
+      "memory_large": "{{kb}} KB：每次读取都要花费数千个 token。请拆分它，或把它变成 Skill。",
+      "stale_path": "提到的文件在这台电脑上找不到：{{paths}}",
+      "global_candidate": "它与你本人有关，而不是这个项目。如果处处适用，请移到全局 CLAUDE.md。",
+      "similar_memory": "与 {{other}} 有 {{percent}}% 相同。保留一个；如果处处适用，可移到全局 CLAUDE.md。",
+      "index_too_long": "MEMORY.md 有 {{lines}} 行；Claude Code 只加载前 {{max}} 行，其余部分永远不会被看到。",
+      "index_broken_link": "MEMORY.md 指向的 {{file}} 已不存在。",
+      "index_missing": "没有 MEMORY.md，所以 Claude 每次会话开始时都不知道这些记忆的存在。"
     }
+  },
+  "memory": {
+    "title": "记忆",
+    "subtitle": "Claude Code 对每个项目记住的内容，以及每次会话都会加载的 CLAUDE.md 指令。",
+    "loading": "正在读取记忆…",
+    "loadFailed": "无法读取 Claude Code 的记忆",
+    "readFailed": "无法读取这条记忆",
+    "summary": "概览",
+    "hint": "这些笔记由 Claude 在工作时自己写下。在这里审阅：删除错误或过时的内容，把与你本人有关的移到全局 CLAUDE.md，把操作步骤变成 Skill。记忆不会被纳入备份。",
+    "stats": {
+      "global": "全局 CLAUDE.md（token）",
+      "projects": "项目",
+      "memories": "记忆",
+      "problems": "问题"
+    },
+    "none": "无",
+    "search": "搜索记忆",
+    "onlyProblems": "只看有问题的",
+    "globalTitle": "全局指令",
+    "noGlobal": "你还没有全局 CLAUDE.md。把记忆移到那里时会自动创建。",
+    "projectsTitle": "项目",
+    "empty": "Claude Code 还没有保存任何记忆。",
+    "noMatch": "没有匹配的记忆。",
+    "folderUnknown": "找不到项目文件夹（{{slug}}）",
+    "count_one": "{{count}} 条记忆",
+    "count_other": "{{count}} 条记忆",
+    "everySession": "每次会话 {{tokens}}",
+    "whenRead": "读取时 {{tokens}}",
+    "kinds": {
+      "user": "关于你",
+      "feedback": "反馈",
+      "project": "项目",
+      "reference": "参考"
+    },
+    "makeSkill": "变成 Skill",
+    "moveToGlobal": "移到全局 CLAUDE.md",
+    "delete": "删除",
+    "deleteTitle": "删除记忆",
+    "deleteConfirm": "从 {{project}} 中删除“{{name}}”？Claude 将忘记它，MEMORY.md 中对应的行也会被移除。副本会保存在应用的 memory-trash 文件夹中。",
+    "moveTitle": "移到全局 CLAUDE.md",
+    "moveConfirm": "把“{{name}}”加入全局 CLAUDE.md，让 Claude 在所有项目中遵循它，并从 {{project}} 中移除？之后每次会话都会加载它。",
+    "deleted": "已删除“{{name}}”",
+    "backupAt": "副本位于 {{path}}",
+    "deleteFailed": "无法删除这条记忆",
+    "promoted": "已把“{{name}}”移到全局 CLAUDE.md",
+    "promoteFailed": "无法移动这条记忆",
+    "skillCreated": "Skill 已创建。如果它取代了这条记忆，可以删除记忆。"
   }
 }

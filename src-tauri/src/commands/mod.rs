@@ -3,6 +3,7 @@ pub mod authoring;
 pub mod browse;
 pub mod git_backup;
 pub mod insights;
+pub mod memory;
 pub mod projects;
 pub mod scan;
 pub mod plugins;

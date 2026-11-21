@@ -1055,3 +1055,63 @@ export const createSkill = (name: string, description: string, body: string) =>
 
 export const saveSkillDocument = (skillId: string, content: string) =>
   invoke<void>("save_skill_document", { skillId, content });
+
+// ── Agent memory (Claude Code) ──
+
+export interface InstructionFile {
+  path: string;
+  bytes: number;
+  tokens: number;
+  findings: SkillFinding[];
+}
+
+export interface MemoryIndex {
+  lines: number;
+  tokens: number;
+  /** Tokens of the part Claude Code loads into every session. */
+  loaded_tokens: number;
+}
+
+export interface MemoryFile {
+  file: string;
+  path: string;
+  name: string | null;
+  description: string | null;
+  kind: string | null;
+  bytes: number;
+  tokens: number;
+  /** Unix seconds. */
+  modified: number | null;
+  in_index: boolean;
+  findings: SkillFinding[];
+}
+
+export interface MemoryProject {
+  slug: string;
+  project_path: string | null;
+  memory_dir: string;
+  index: MemoryIndex | null;
+  instructions: InstructionFile[];
+  memories: MemoryFile[];
+  findings: SkillFinding[];
+  always_on: number;
+}
+
+export interface MemoryReport {
+  global: InstructionFile[];
+  global_always_on: number;
+  projects: MemoryProject[];
+}
+
+export const getAgentMemory = () => invoke<MemoryReport>("get_agent_memory");
+
+export const readAgentMemory = (slug: string, file: string) =>
+  invoke<string>("read_agent_memory", { slug, file });
+
+/** Deletes a memory; returns where its copy was kept. */
+export const deleteAgentMemory = (slug: string, file: string) =>
+  invoke<string>("delete_agent_memory", { slug, file });
+
+/** Moves a memory into the global CLAUDE.md; returns where its copy was kept. */
+export const moveAgentMemoryToGlobal = (slug: string, file: string) =>
+  invoke<string>("move_agent_memory_to_global", { slug, file });

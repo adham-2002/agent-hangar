@@ -17,7 +17,15 @@ import {
 import { SkillFindings } from "./SkillFindings";
 import { SkillMarkdown } from "./SkillMarkdown";
 
-export type SkillEditorMode = { kind: "create" } | { kind: "edit"; skill: ManagedSkill };
+export interface SkillDraftSeed {
+  name: string;
+  description: string;
+  body: string;
+}
+
+export type SkillEditorMode =
+  | { kind: "create"; seed?: SkillDraftSeed }
+  | { kind: "edit"; skill: ManagedSkill };
 
 interface Props {
   mode: SkillEditorMode | null;
@@ -35,9 +43,10 @@ export function SkillEditorDialog({ mode, onClose, onSaved }: Props) {
 function Editor({ mode, onClose, onSaved }: { mode: SkillEditorMode } & Omit<Props, "mode">) {
   const { t } = useTranslation();
   const editing = mode.kind === "edit" ? mode.skill : null;
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [body, setBody] = useState("");
+  const seed = mode.kind === "create" ? mode.seed : undefined;
+  const [name, setName] = useState(seed?.name ?? "");
+  const [description, setDescription] = useState(seed?.description ?? "");
+  const [body, setBody] = useState(seed?.body ?? "");
   const [content, setContent] = useState("");
   const [original, setOriginal] = useState<string | null>(editing ? null : "");
   const [loadError, setLoadError] = useState<string | null>(null);

@@ -50,11 +50,11 @@ pub struct Finding {
 }
 
 impl Finding {
-    fn new(code: &'static str, severity: Severity, message: impl Into<String>) -> Self {
+    pub(crate) fn new(code: &'static str, severity: Severity, message: impl Into<String>) -> Self {
         Self { code, severity, message: message.into(), params: BTreeMap::new() }
     }
 
-    fn param(mut self, key: &str, value: impl ToString) -> Self {
+    pub(crate) fn param(mut self, key: &str, value: impl ToString) -> Self {
         self.params.insert(key.to_string(), value.to_string());
         self
     }
@@ -77,7 +77,7 @@ pub fn is_spec_name(name: &str) -> bool {
 
 /// The frontmatter and body of a `SKILL.md`, or `None` when it does not open
 /// with a `---` block.
-fn split_frontmatter(content: &str) -> Option<(&str, &str)> {
+pub(crate) fn split_frontmatter(content: &str) -> Option<(&str, &str)> {
     let content = content.strip_prefix('\u{feff}').unwrap_or(content).trim_start();
     let rest = content.strip_prefix("---")?;
     let rest = rest.strip_prefix("\r\n").or_else(|| rest.strip_prefix('\n'))?;
@@ -485,7 +485,7 @@ fn others(skills: &[LibrarySkill], indices: &[usize], me: usize) -> String {
 }
 
 /// The words of a description that carry its meaning.
-fn content_words(text: &str) -> BTreeSet<String> {
+pub(crate) fn content_words(text: &str) -> BTreeSet<String> {
     const STOP: &[&str] = &[
         "the", "and", "for", "with", "this", "that", "use", "when", "user", "from", "into", "your",
         "you", "are", "can", "will", "any", "all", "its", "via", "not", "but", "also", "such",
