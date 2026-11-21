@@ -114,6 +114,11 @@ fn item_cost(doc: &str, fallback_name: &str) -> Cost {
     }
 }
 
+/// Tokens a markdown document adds to the context when loaded whole.
+pub fn body_tokens(text: &str) -> u32 {
+    tokens(text.chars().count(), BODY_CHARS_PER_TOKEN)
+}
+
 fn read_small(path: &Path) -> Option<String> {
     let meta = fs::metadata(path).ok()?;
     if !meta.is_file() || meta.len() > MAX_DOC_BYTES {

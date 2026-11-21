@@ -10,6 +10,7 @@
     "installSkills": "Install Skills",
     "plugins": "Plugins",
     "insights": "Insights",
+    "memory": "Memory",
     "backup": "Backup",
     "presets": "Presets",
     "newPreset": "New Preset",
@@ -1371,7 +1372,9 @@
       "tips_one": "{{count}} skill with tips",
       "tips_other": "{{count}} skills with tips",
       "edit": "Edit"
-    }
+    },
+    "memoryNote": "Claude Code also loads your instructions and memory: {{global}} from the global CLAUDE.md in every session, and up to {{project}} more in a project.",
+    "memoryLink": "Review memory"
   },
   "authoring": {
     "newSkill": "New skill",
@@ -1423,7 +1426,64 @@
       "broken_link": "The instructions link to {{target}}, which is not in the skill's folder.",
       "invisible_chars": "SKILL.md holds {{count}} invisible character(s), first on line {{line}}. They can hide text from you while the agent still reads it.",
       "duplicate_name": "{{other}} has the same name. An agent with both sees only one of them.",
-      "description_overlap": "The description is {{percent}}% the same as {{other}}'s. An agent may pick the wrong one."
+      "description_overlap": "The description is {{percent}}% the same as {{other}}'s. An agent may pick the wrong one.",
+      "secret_like": "Looks like it contains a {{kind}}. Anything here is sent to the model every time it is read; remove it and rotate the key.",
+      "instructions_large": "About {{tokens}} tokens are loaded into every session. Move rarely needed parts into a skill, which loads only when used.",
+      "not_in_index": "MEMORY.md does not mention it, so Claude does not know it is there.",
+      "memory_large": "{{kb}} KB: reading it costs thousands of tokens. Split it, or turn it into a skill.",
+      "stale_path": "Names files that cannot be found on this computer: {{paths}}",
+      "global_candidate": "It is about you rather than this project. If it holds everywhere, move it to your global CLAUDE.md.",
+      "similar_memory": "{{percent}}% the same as {{other}}. Keep one, or move it to your global CLAUDE.md if it holds everywhere.",
+      "index_too_long": "MEMORY.md has {{lines}} lines; Claude Code loads only the first {{max}}, so the rest is never seen.",
+      "index_broken_link": "MEMORY.md points to {{file}}, which is gone.",
+      "index_missing": "There is no MEMORY.md, so Claude starts each session without knowing these memories exist."
     }
+  },
+  "memory": {
+    "title": "Memory",
+    "subtitle": "What Claude Code remembers about each project, and the CLAUDE.md instructions it loads every session.",
+    "loading": "Reading memory…",
+    "loadFailed": "Could not read Claude Code's memory",
+    "readFailed": "Could not read this memory",
+    "summary": "Summary",
+    "hint": "Claude writes these notes itself while it works. Review them here: remove what is wrong or stale, move what is about you into your global CLAUDE.md, and turn procedures into skills. Memory stays out of backups.",
+    "stats": {
+      "global": "Global CLAUDE.md (tokens)",
+      "projects": "Projects",
+      "memories": "Memories",
+      "problems": "Problems"
+    },
+    "none": "None",
+    "search": "Search memories",
+    "onlyProblems": "Only with problems",
+    "globalTitle": "Global instructions",
+    "noGlobal": "You have no global CLAUDE.md. Moving a memory there creates it.",
+    "projectsTitle": "Projects",
+    "empty": "Claude Code has not saved any memory yet.",
+    "noMatch": "No memory matches.",
+    "folderUnknown": "Project folder not found ({{slug}})",
+    "count_one": "{{count}} memory",
+    "count_other": "{{count}} memories",
+    "everySession": "{{tokens}} every session",
+    "whenRead": "{{tokens}} when read",
+    "kinds": {
+      "user": "About you",
+      "feedback": "Feedback",
+      "project": "Project",
+      "reference": "Reference"
+    },
+    "makeSkill": "Turn into a skill",
+    "moveToGlobal": "Move to global CLAUDE.md",
+    "delete": "Delete",
+    "deleteTitle": "Delete memory",
+    "deleteConfirm": "Delete \"{{name}}\" from {{project}}? Claude forgets it, and its line in MEMORY.md is removed. A copy is kept in the app's memory-trash folder.",
+    "moveTitle": "Move to global CLAUDE.md",
+    "moveConfirm": "Add \"{{name}}\" to your global CLAUDE.md, so Claude follows it in every project, and remove it from {{project}}? It is then loaded in every session.",
+    "deleted": "Deleted \"{{name}}\"",
+    "backupAt": "A copy is at {{path}}",
+    "deleteFailed": "Could not delete the memory",
+    "promoted": "Moved \"{{name}}\" to your global CLAUDE.md",
+    "promoteFailed": "Could not move the memory",
+    "skillCreated": "Skill created. Delete the memory if the skill replaces it."
   }
 }

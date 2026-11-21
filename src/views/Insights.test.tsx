@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, mount } from "../test-utils/mount";
+import { MemoryRouter } from "react-router-dom";
 import { Insights } from "./Insights";
 import type { ManagedSkill, ToolInfo } from "../lib/tauri";
 
@@ -20,6 +21,7 @@ const api = vi.hoisted(() => ({
   getSkillDocument: vi.fn(),
   addProject: vi.fn(),
   exportSkillToProject: vi.fn(),
+  getAgentMemory: vi.fn(),
 }));
 const app = vi.hoisted(() => ({
   refreshManagedSkills: vi.fn(),
@@ -101,11 +103,16 @@ beforeEach(() => {
   api.checkLibraryQuality.mockResolvedValue([]);
   api.exportSkillToProject.mockResolvedValue(undefined);
   app.projects = [];
+  api.getAgentMemory.mockResolvedValue({ global: [], global_always_on: 0, projects: [] });
 });
 afterEach(() => cleanup());
 
 async function render() {
-  const c = mount(<Insights />);
+  const c = mount(
+    <MemoryRouter>
+      <Insights />
+    </MemoryRouter>,
+  );
   for (let i = 0; i < 4; i++) await flush();
   return c;
 }

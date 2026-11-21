@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.47.0] - 2026-11-21
+
+### Release Overview
+- Review what Claude Code remembers: every project's memory in one place, checked for problems, with one-click clean-up.
+
+### User-facing
+- **Memory page** — Lists the notes Claude Code keeps for itself in each project, and the `CLAUDE.md` files it loads every session, with what each costs in tokens. Search them, open one to read it, or show only the ones with problems.
+- **Memory checks** — Flags memories that `MEMORY.md` never mentions (so Claude does not know they exist), index links to deleted files, an index longer than the 200 lines Claude Code loads, very large memories, file paths that can no longer be found, memories that repeat each other, and anything that looks like an API key or token.
+- **Clean up in one click** — Delete a memory (a copy is kept in the app's `memory-trash` folder and its `MEMORY.md` line is removed), move a memory about you into your global `CLAUDE.md` so every project gets it, or turn a memory into a skill in the skill editor.
+- **Insights** — The context budget now says what your instructions and memory add to every session, with a link to the Memory page.
+- **Review only** — The app reviews memory but never writes new memories; Claude does that. Memory is not added to backups.
+
 ## [1.46.0] - 2026-11-21
 
 ### Release Overview

@@ -6,6 +6,7 @@ import {
   Layers,
   Puzzle,
   Gauge,
+  Brain,
   Download,
   Settings as SettingsIcon,
   FolderOpen,
@@ -169,6 +170,13 @@ export function CommandPalette() {
         label: t("sidebar.insights"),
         icon: <Gauge className="h-3.5 w-3.5" />,
         run: () => navigate("/insights"),
+      },
+      {
+        id: "action:memory",
+        kind: "action",
+        label: t("sidebar.memory"),
+        icon: <Brain className="h-3.5 w-3.5" />,
+        run: () => navigate("/memory"),
       },
       {
         id: "action:install",
