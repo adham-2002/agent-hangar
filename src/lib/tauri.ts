@@ -253,11 +253,15 @@ export const getSkillSourceDiff = (skillId: string) =>
   invoke<SkillSourceDiff>("get_skill_source_diff", { skillId });
 
 export const deleteManagedSkill = (skillId: string) =>
-  invoke<void>("delete_managed_skill", { skillId });
+  invoke<BatchDeleteSkillsResult>("delete_managed_skill", { skillId });
 
 export interface BatchDeleteSkillsResult {
   deleted: number;
+  /** Ids not deleted; `errors` says why. */
   failed: string[];
+  errors: { skill_id: string; name: string; reason: string }[];
+  /** Copies kept because they were edited, or that could not be removed. */
+  left_behind: { path: string; reason: string }[];
 }
 
 export interface InstallLocalResult {
@@ -987,3 +991,67 @@ export interface PluginSkillDocument {
 /** A bundled skill's SKILL.md, read from inside the plugin's folder. */
 export const getPluginSkillDocument = (installPath: string, skill: string) =>
   invoke<PluginSkillDocument>("get_plugin_skill_document", { installPath, skill });
+
+// ── Insights: usage and context cost ──
+
+export interface SkillUsage {
+  /** As invoked: `name`, or `plugin:skill`. */
+  name: string;
+  invoked: number;
+  failed: number;
+  typed: number;
+  last_30_days: number;
+  /** Unix seconds. */
+  last_used: number | null;
+  projects: string[];
+}
+
+export interface UsageReport {
+  sessions: number;
+  /** Unix seconds of the oldest event: usage before it is unknown. */
+  since: number | null;
+  skills: SkillUsage[];
+}
+
+export interface ContextCost {
+  always_on: number;
+  on_invoke: number;
+}
+
+export interface ContextCosts {
+  skills: { id: string; cost: ContextCost }[];
+  plugins: { id: string; cost: ContextCost; source: "claude" | "estimate" }[];
+}
+
+export const getSkillUsage = () => invoke<UsageReport>("get_skill_usage");
+
+export const getContextCosts = () => invoke<ContextCosts>("get_context_costs");
+
+// ── Writing and checking skills ──
+
+export type FindingSeverity = "error" | "warning" | "info";
+
+/** One quality-check result. `code` and `params` translate; `message` is English. */
+export interface SkillFinding {
+  code: string;
+  severity: FindingSeverity;
+  message: string;
+  params: Record<string, string>;
+}
+
+export interface SkillQuality {
+  skill_id: string;
+  findings: SkillFinding[];
+}
+
+export const checkLibraryQuality = () => invoke<SkillQuality[]>("check_library_quality");
+
+/** Check a SKILL.md being written; with `skillId`, links resolve in that skill's folder. */
+export const checkSkillDraft = (content: string, skillId?: string | null) =>
+  invoke<SkillFinding[]>("check_skill_draft", { content, skillId: skillId ?? null });
+
+export const createSkill = (name: string, description: string, body: string) =>
+  invoke<{ skill_id: string; name: string }>("create_skill", { name, description, body });
+
+export const saveSkillDocument = (skillId: string, content: string) =>
+  invoke<void>("save_skill_document", { skillId, content });

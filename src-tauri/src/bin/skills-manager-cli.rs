@@ -229,6 +229,19 @@ enum SkillsCommand {
         #[arg(long)]
         all: bool,
     },
+    /// Check skills for problems that stop an agent finding or choosing them
+    /// (frontmatter, name and description limits, broken links, overlaps).
+    /// Omit the ref to check the whole library.
+    Lint {
+        reference: Option<String>,
+    },
+    /// Add a skill you wrote to the library: a folder holding SKILL.md and
+    /// any files it uses. Its frontmatter name becomes the skill's name. A
+    /// draft with errors is refused; remaining warnings are reported.
+    Create {
+        /// The draft folder (copied; the draft itself is left as is)
+        dir: PathBuf,
+    },
     Check {
         reference: Option<String>,
         #[arg(long)]
@@ -737,6 +750,9 @@ struct RemoveReport {
     ok: bool,
     deleted: usize,
     failed: Vec<String>,
+    /// Copies kept (edited since deployed) or that could not be removed.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    left_behind: Vec<String>,
     dry_run: bool,
 }
 
@@ -1233,6 +1249,44 @@ fn run_skills(args: SkillsArgs, store: &SkillStore, json: bool) -> anyhow::Resul
         SkillsCommand::Update { reference, all } => {
             let reports = run_update(store, reference.as_deref(), all)?;
             print_json(&reports, json);
+        }
+        SkillsCommand::Create { dir } => {
+            let (created, findings) =
+                app_lib::commands::authoring::create_skill_from_dir_internal(store, &dir)
+                    .map_err(|e| anyhow!(e.message))?;
+            print_json(
+                &serde_json::json!({
+                    "ok": true,
+                    "skill_id": created.skill_id,
+                    "name": created.name,
+                    "findings": findings,
+                }),
+                json,
+            );
+        }
+        SkillsCommand::Lint { reference } => {
+            let mut results = app_lib::commands::authoring::check_library_quality_internal(store)
+                .map_err(|e| anyhow!(e.message))?;
+            let names: std::collections::HashMap<String, String> = store
+                .get_all_skills()?
+                .into_iter()
+                .map(|s| (s.id, s.name))
+                .collect();
+            if let Some(reference) = reference {
+                let skill = resolve_skill(store, &reference)?;
+                results.retain(|r| r.skill_id == skill.id);
+            }
+            let report: Vec<_> = results
+                .into_iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "skill_id": r.skill_id,
+                        "name": names.get(&r.skill_id),
+                        "findings": r.findings,
+                    })
+                })
+                .collect();
+            print_json(&report, json);
         }
         SkillsCommand::Check {
             reference,
@@ -2263,6 +2317,7 @@ fn run_remove(
             ok: true,
             deleted: ids.len(),
             failed,
+            left_behind: Vec::new(),
             dry_run: true,
         });
     }
@@ -2274,13 +2329,19 @@ fn run_remove(
     }
 
     let result = cmd::delete_managed_skills_by_ids(store, &ids).map_err(map_app_err)?;
-    for missing in result.failed {
-        failed.push(format!("{missing}: not found"));
+    for failure in result.errors {
+        let label = if failure.name.is_empty() { failure.skill_id } else { failure.name };
+        failed.push(format!("{label}: {}", failure.reason));
     }
     Ok(RemoveReport {
         ok: true,
         deleted: result.deleted,
         failed,
+        left_behind: result
+            .left_behind
+            .into_iter()
+            .map(|l| format!("{}: {}", l.path, l.reason))
+            .collect(),
         dry_run: false,
     })
 }

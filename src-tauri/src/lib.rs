@@ -1002,6 +1002,12 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             // Tools
+            commands::insights::get_skill_usage,
+            commands::insights::get_context_costs,
+            commands::authoring::check_library_quality,
+            commands::authoring::check_skill_draft,
+            commands::authoring::create_skill,
+            commands::authoring::save_skill_document,
             commands::plugins::list_plugins,
             commands::plugins::get_plugin_detail,
             commands::plugins::get_plugin_skill_document,

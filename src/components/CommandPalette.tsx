@@ -5,6 +5,7 @@ import {
   Search,
   Layers,
   Puzzle,
+  Gauge,
   Download,
   Settings as SettingsIcon,
   FolderOpen,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { getPresetIconOption } from "../lib/presetIcons";
+import { presetPath } from "../lib/presetRoute";
 import { normalizeSkillSearch, skillSearchMatches } from "../lib/skillSearch";
 import { cn } from "../utils";
 
@@ -117,9 +119,7 @@ export function CommandPalette() {
             if (viewedPreset?.id !== s.id) {
               setViewedPresetId(s.id);
             }
-            if (!window.location.pathname.endsWith("/my-skills")) {
-              navigate("/my-skills");
-            }
+            navigate(presetPath(s.id));
           },
         };
       });
@@ -162,6 +162,13 @@ export function CommandPalette() {
         label: t("sidebar.plugins"),
         icon: <Puzzle className="h-3.5 w-3.5" />,
         run: () => navigate("/plugins"),
+      },
+      {
+        id: "action:insights",
+        kind: "action",
+        label: t("sidebar.insights"),
+        icon: <Gauge className="h-3.5 w-3.5" />,
+        run: () => navigate("/insights"),
       },
       {
         id: "action:install",

@@ -65,7 +65,7 @@ describe("hiddenSelectionTexts", () => {
     const texts = await textsIn("en", 3, 0);
     expect(texts.toolbarNote).toBeUndefined();
     expect(texts.deleteConfirm).toBe(
-      "Delete 3 selected skills permanently? This removes their central library files, preset links, and synced agent targets."
+      "Delete 3 selected skills permanently? This removes their library files, preset links, their copies in every agent, and unchanged copies in your project workspaces. Project copies you edited are kept."
     );
   });
 
@@ -74,13 +74,13 @@ describe("hiddenSelectionTexts", () => {
     const en = await textsIn("en", 2, 2);
     expect(en.toolbarNote).toBe("(2 not shown)");
     expect(en.deleteConfirm).toBe(
-      "Delete 2 selected skills permanently, including 2 not shown in the list? This removes their central library files, preset links, and synced agent targets."
+      "Delete 2 selected skills permanently, including 2 not shown in the list? This removes their library files, preset links, their copies in every agent, and unchanged copies in your project workspaces. Project copies you edited are kept."
     );
 
     const zh = await textsIn("zh", 5, 3);
     expect(zh.toolbarNote).toBe("（其中 3 个未显示）");
     expect(zh.deleteConfirm).toBe(
-      "确定彻底删除选中的 5 个 Skill（其中 3 个未显示）吗？中央仓库文件、Preset 关联和已同步到各 Agent 的目标都会被移除。"
+      "确定彻底删除选中的 5 个 Skill（其中 3 个未显示）吗？中央仓库文件、Preset 关联、各 Agent 中的副本，以及项目工作区中未修改的副本都会被移除。你修改过的项目副本会保留。"
     );
 
     const zhTW = await textsIn("zh-TW", 5, 3);

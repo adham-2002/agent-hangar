@@ -187,10 +187,44 @@ pub struct BatchUpdateSkillsResult {
     pub held_back: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct BatchDeleteSkillsResult {
     pub deleted: usize,
+    /// Ids of skills that were not deleted; `errors` says why.
     pub failed: Vec<String>,
+    pub errors: Vec<DeleteFailure>,
+    /// Copies kept on purpose or that could not be removed.
+    pub left_behind: Vec<LeftBehind>,
+}
+
+impl BatchDeleteSkillsResult {
+    fn fail(&mut self, skill_id: &str, name: &str, reason: &str) {
+        self.failed.push(skill_id.to_string());
+        self.errors.push(DeleteFailure {
+            skill_id: skill_id.to_string(),
+            name: name.to_string(),
+            reason: reason.to_string(),
+        });
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct DeleteFailure {
+    pub skill_id: String,
+    pub name: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LeftBehind {
+    pub path: String,
+    pub reason: String,
+}
+
+impl LeftBehind {
+    fn new(path: &Path, reason: &str) -> Self {
+        Self { path: path.to_string_lossy().to_string(), reason: reason.to_string() }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -725,14 +759,17 @@ fn source_label_for_skill(skill: &SkillRecord) -> String {
 pub async fn delete_managed_skill(
     skill_id: String,
     store: State<'_, Arc<SkillStore>>,
-) -> Result<(), AppError> {
+) -> Result<BatchDeleteSkillsResult, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let result = delete_managed_skills_by_ids(&store, &[skill_id.clone()])?;
         if result.deleted == 0 {
-            return Err(AppError::not_found("Skill not found"));
+            return Err(match result.errors.first() {
+                Some(failure) if failure.reason != "not found" => AppError::io(&failure.reason),
+                _ => AppError::not_found("Skill not found"),
+            });
         }
-        Ok(())
+        Ok(result)
     })
     .await?
 }
@@ -747,54 +784,110 @@ pub async fn delete_managed_skills(
         .await?
 }
 
+/// Delete library skills everywhere: every agent deployment, the unchanged
+/// copies in registered project workspaces, and the library folder.
+///
+/// The library folder is moved aside before anything else is touched. On
+/// Windows a move fails as a whole while any file inside is open elsewhere,
+/// so a skill in use is refused intact, with the reason, instead of being
+/// half deleted and dropped from the library while its files stay on disk.
+/// Copies that may hold work of their own (a project copy edited since it was
+/// deployed, an agent copy that no longer matches its record) are kept and
+/// listed in `left_behind`, as is anything that could not be removed.
 pub fn delete_managed_skills_by_ids(
     store: &SkillStore,
     skill_ids: &[String],
 ) -> Result<BatchDeleteSkillsResult, AppError> {
     sync_metadata::with_repo_lock("delete skills", || {
-        let mut deleted = 0;
-        let mut failed = Vec::new();
-
+        let mut result = BatchDeleteSkillsResult::default();
         for skill_id in skill_ids {
             let Some(skill) = store.get_skill_by_id(skill_id)? else {
-                store.log_audit(
-                    AuditDraft::new("remove")
-                        .skill(skill_id.clone(), "")
-                        .fail("not found"),
-                );
-                failed.push(skill_id.clone());
+                store.log_audit(AuditDraft::new("remove").skill(skill_id.clone(), "").fail("not found"));
+                result.fail(skill_id, "", "not found");
                 continue;
             };
-
-            let targets = store.get_targets_for_skill(skill_id)?;
-            for target in &targets {
-                sync_engine::remove_recorded_target_or_warn(
-                    &PathBuf::from(&target.target_path),
-                    &target.mode,
-                );
+            match delete_one_skill(store, &skill, &mut result.left_behind) {
+                Ok(()) => {
+                    store.log_audit(AuditDraft::new("remove").skill(skill_id.clone(), skill.name.clone()).ok());
+                    result.deleted += 1;
+                }
+                Err(reason) => {
+                    store.log_audit(
+                        AuditDraft::new("remove").skill(skill_id.clone(), skill.name.clone()).fail(reason.clone()),
+                    );
+                    result.fail(skill_id, &skill.name, &reason);
+                }
             }
-
-            let central = PathBuf::from(&skill.central_path);
-            if central.exists() {
-                std::fs::remove_dir_all(&central).ok();
-            }
-
-            store.delete_skill(skill_id)?;
-            store.log_audit(
-                AuditDraft::new("remove")
-                    .skill(skill_id.clone(), skill.name.clone())
-                    .ok(),
-            );
-            deleted += 1;
         }
-
-        if deleted > 0 {
+        if result.deleted > 0 {
             sync_metadata::write_all_from_db_unlocked(store)?;
         }
-
-        Ok(BatchDeleteSkillsResult { deleted, failed })
+        Ok(result)
     })
     .map_err(AppError::db)
+}
+
+/// `Err` means nothing was changed for this skill.
+fn delete_one_skill(
+    store: &SkillStore,
+    skill: &SkillRecord,
+    left_behind: &mut Vec<LeftBehind>,
+) -> Result<(), String> {
+    // Planned while the library copy is still in place: whether a project
+    // copy is safe to remove is decided by comparing it with that copy.
+    let mut project_removals = Vec::new();
+    for project in store.get_all_projects().map_err(|e| e.to_string())? {
+        if let Ok(plan) =
+            super::projects::plan_project_undeploy(store, &project.id, std::slice::from_ref(&skill.id), &[])
+        {
+            project_removals.extend(plan.into_iter().map(|target| (project.id.clone(), target)));
+        }
+    }
+
+    let central = PathBuf::from(&skill.central_path);
+    let staged = central.with_file_name(format!(".deleting-{}", uuid::Uuid::new_v4()));
+    let moved = if central.symlink_metadata().is_ok() {
+        std::fs::rename(&central, &staged).map_err(|e| {
+            format!(
+                "could not delete {}: {e}. A file in it may be open in another program; close it and try again",
+                central.display()
+            )
+        })?;
+        true
+    } else {
+        false
+    };
+
+    for target in store.get_targets_for_skill(&skill.id).map_err(|e| e.to_string())? {
+        let path = PathBuf::from(&target.target_path);
+        match sync_engine::remove_recorded_target(&path, &target.mode) {
+            Ok(true) => {}
+            Ok(false) if path.symlink_metadata().is_err() => {}
+            Ok(false) => left_behind.push(LeftBehind::new(&path, "changed since it was deployed, so it was kept")),
+            Err(e) => left_behind.push(LeftBehind::new(&path, &format!("could not be removed: {e}"))),
+        }
+    }
+
+    for (project_id, target) in &project_removals {
+        let path = PathBuf::from(&target.path);
+        if !target.safe {
+            left_behind.push(LeftBehind::new(&path, "edited in the project, so it was kept"));
+            continue;
+        }
+        // Safety was checked above against the library copy, now moved aside.
+        if let Err(e) = super::projects::remove_planned_project_copy(store, project_id, target, true) {
+            left_behind.push(LeftBehind::new(&path, &format!("could not be removed: {}", e.message)));
+        }
+    }
+
+    store.delete_skill(&skill.id).map_err(|e| e.to_string())?;
+    if moved {
+        if let Err(e) = std::fs::remove_dir_all(&staged) {
+            log::warn!("Failed to remove deleted skill files at {}: {e}", staged.display());
+            left_behind.push(LeftBehind::new(&staged, &format!("could not be removed: {e}")));
+        }
+    }
+    Ok(())
 }
 
 /// Append an audit log entry summarising an install attempt.
@@ -4777,6 +4870,85 @@ mod tests {
             "the user's local fork must survive the skill removal"
         );
         assert!(repo.store.get_targets_for_skill("s1").unwrap().is_empty());
+        assert_eq!(result.left_behind.len(), 1, "the kept fork is reported");
+        assert_eq!(result.left_behind[0].path, target.to_string_lossy());
+    }
+
+    /// Deleting a skill also removes its unchanged copies in registered
+    /// projects, which agents there would otherwise keep loading, and keeps
+    /// (and reports) a project copy that was edited.
+    #[test]
+    fn deleting_a_skill_removes_unchanged_project_copies_and_keeps_edited_ones() {
+        let repo = test_repo();
+        let dir = write_skill_dir("my-skill");
+        repo.store.insert_skill(&sample_skill("s1", "my-skill", &dir)).unwrap();
+
+        let projects_tmp = tempdir().unwrap();
+        let mut copies = Vec::new();
+        for (name, edited) in [("clean", false), ("edited", true)] {
+            let root = projects_tmp.path().join(name);
+            fs::create_dir_all(&root).unwrap();
+            super::super::projects::add_project_internal(&repo.store, root.to_string_lossy().to_string())
+                .unwrap();
+            let copy = root.join(".claude").join("skills").join("my-skill");
+            fs::create_dir_all(&copy).unwrap();
+            fs::copy(dir.join("SKILL.md"), copy.join("SKILL.md")).unwrap();
+            if edited {
+                fs::write(copy.join("SKILL.md"), "---\nname: my-skill\n---\nmy project edit\n").unwrap();
+            }
+            copies.push(copy);
+        }
+
+        let result = delete_managed_skills_by_ids(&repo.store, &["s1".to_string()]).unwrap();
+
+        assert_eq!(result.deleted, 1);
+        assert!(!copies[0].exists(), "the unchanged project copy is removed");
+        assert!(copies[1].join("SKILL.md").is_file(), "the edited project copy is kept");
+        assert_eq!(result.left_behind.len(), 1);
+        assert!(result.left_behind[0].reason.contains("edited"));
+        assert!(!dir.exists());
+    }
+
+    /// A skill whose files are open elsewhere is refused whole: still in the
+    /// library, still deployed, with the reason. Before, the record was
+    /// dropped and the files stayed on disk where nothing could reach them.
+    #[cfg(windows)]
+    #[test]
+    fn deleting_a_skill_in_use_refuses_without_touching_anything() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let repo = test_repo();
+        let dir = write_skill_dir("busy");
+        repo.store.insert_skill(&sample_skill("s1", "busy", &dir)).unwrap();
+        let agent_tmp = tempdir().unwrap();
+        let target = agent_tmp.path().join("busy");
+        fs::create_dir_all(&target).unwrap();
+        fs::copy(dir.join("SKILL.md"), target.join("SKILL.md")).unwrap();
+        repo.store
+            .insert_target(&SkillTargetRecord {
+                id: "t1".to_string(),
+                skill_id: "s1".to_string(),
+                tool: "test_agent".to_string(),
+                target_path: target.to_string_lossy().to_string(),
+                mode: "copy".to_string(),
+                status: "ok".to_string(),
+                synced_at: Some(1),
+                last_error: None,
+                source_hash: None,
+            })
+            .unwrap();
+
+        let lock = fs::OpenOptions::new().read(true).share_mode(0).open(dir.join("SKILL.md")).unwrap();
+        let result = delete_managed_skills_by_ids(&repo.store, &["s1".to_string()]).unwrap();
+        assert_eq!(result.deleted, 0);
+        assert_eq!(result.failed, ["s1"]);
+        assert!(result.errors[0].reason.contains("open in another program"));
+        assert!(repo.store.get_skill_by_id("s1").unwrap().is_some());
+        assert!(target.join("SKILL.md").is_file(), "the deployment is untouched");
+        drop(lock);
+
+        let result = delete_managed_skills_by_ids(&repo.store, &["s1".to_string()]).unwrap();
+        assert_eq!(result.deleted, 1);
+        assert!(!dir.exists() && !target.exists());
     }
 
     fn site_skill_source(body: &str) -> TempDir {

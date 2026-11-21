@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LIBRARY_PATH, presetIdFromLocation, presetPath } from "../lib/presetRoute";
 import {
   LayoutDashboard,
   Layers,
   Globe,
   Download,
   Puzzle,
+  Gauge,
   CloudUpload,
   Settings,
   Plus,
@@ -50,7 +52,7 @@ export function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { presets, viewedPreset, setViewedPresetId, closeSkillDetail, refreshPresets, refreshManagedSkills, projects, refreshProjects, tools, managedSkills, appUpdate } = useApp();
+  const { presets, setViewedPresetId, closeSkillDetail, refreshPresets, refreshManagedSkills, projects, refreshProjects, tools, managedSkills, appUpdate } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string; icon?: string | null; description?: string | null } | null>(null);
@@ -171,15 +173,16 @@ export function Sidebar() {
     { name: t("sidebar.mySkills"), path: "/my-skills", icon: Layers },
     { name: t("sidebar.installSkills"), path: "/install", icon: Download },
     { name: t("sidebar.plugins"), path: "/plugins", icon: Puzzle },
+    { name: t("sidebar.insights"), path: "/insights", icon: Gauge },
     { name: t("sidebar.backup"), path: "/backup", icon: CloudUpload },
   ];
+
+  const viewingPresetId = presetIdFromLocation(location);
 
   const handleSwitchPreset = (id: string) => {
     closeSkillDetail();
     setViewedPresetId(id);
-    if (location.pathname !== "/my-skills") {
-      navigate("/my-skills");
-    }
+    navigate(presetPath(id));
   };
 
   const handleCreatePreset = async (name: string, description?: string, icon?: string) => {
@@ -399,7 +402,9 @@ export function Sidebar() {
         <div className="px-2.5 space-y-0.5 shrink-0">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            // Library is lit only for the whole library, not inside a preset.
+            const isActive =
+              location.pathname === item.path && !(item.path === LIBRARY_PATH && viewingPresetId);
             return (
               <Link
                 key={item.path}
@@ -449,7 +454,7 @@ export function Sidebar() {
                       {...droppableProvided.droppableProps}
                     >
                       {orderedPresets.map((preset, index) => {
-                        const isActive = viewedPreset?.id === preset.id;
+                        const isActive = viewingPresetId === preset.id;
                         const presetIcon = getPresetIconOption(preset);
                         const PresetIcon = presetIcon.icon;
                         return (
