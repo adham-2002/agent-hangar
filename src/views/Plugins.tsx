@@ -3,12 +3,13 @@ import { Download, Loader2, Plus, Puzzle, RefreshCw, RotateCcw, Search, Trash2 }
 import { useTranslation } from "react-i18next";
 import { cn } from "../utils";
 import * as api from "../lib/tauri";
-import type { CatalogEntry, MarketplaceInfo, PluginDetail, PluginInfo } from "../lib/tauri";
+import type { CatalogEntry, MarketplaceInfo, OfferedPlugin, PluginDetail, PluginInfo } from "../lib/tauri";
 import { getErrorMessage } from "../lib/error";
 import { CATALOG_PAGE, searchCatalog } from "../lib/pluginCatalog";
 import { usePluginInventory } from "../hooks/usePluginInventory";
 import { usePluginOperations } from "../hooks/usePluginOperations";
 import { CardActionMenu } from "../components/CardActionMenu";
+import { OtherDevicesPanel } from "../components/OtherDevicesPanel";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetailSheet } from "../components/DetailSheet";
 import { PluginSkillSheet, type PluginSkillTarget } from "../components/PluginSkillSheet";
@@ -96,6 +97,20 @@ export function Plugins() {
   const [marketsError, setMarketsError] = useState<string | null>(null);
   const [newMarket, setNewMarket] = useState("");
 
+  // Plugins from the user's other computers, carried by the backup.
+  const [offers, setOffers] = useState<OfferedPlugin[]>([]);
+  const loadOffers = useCallback(async () => {
+    try {
+      setOffers(await api.getPluginsFromOtherDevices());
+    } catch {
+      // No backup, or nothing readable: there is simply nothing to offer.
+      setOffers([]);
+    }
+  }, []);
+  useEffect(() => {
+    void loadOffers();
+  }, [loadOffers, plugins]);
+
   const [confirmUninstall, setConfirmUninstall] = useState<PluginInfo | null>(null);
   const [confirmRemoveMarket, setConfirmRemoveMarket] = useState<string | null>(null);
 
@@ -179,6 +194,14 @@ export function Plugins() {
       (accept) => api.installPlugin(entry.plugin_id, accept)
     );
 
+  const installOffer = (offer: OfferedPlugin) =>
+    ops.run(
+      `install:${offer.id}`,
+      t("plugins.ops.installLabel", { name: offer.name }),
+      t("plugins.ops.installed", { name: offer.name }),
+      (accept) => api.installPlugin(offer.id, accept, offer.marketplace_source ?? undefined)
+    );
+
   const update = (plugin: PluginInfo) =>
     ops.run(
       `update:${plugin.id}`,
@@ -237,6 +260,13 @@ export function Plugins() {
               onAction={() => void reload()}
             />
           ) : null}
+
+          <OtherDevicesPanel
+            offers={offers}
+            canInstall={cliReady}
+            busyKey={ops.busyKey}
+            onInstall={(offer) => void installOffer(offer)}
+          />
 
           <p className="text-[12px] text-muted">{t("plugins.appliesToNewSessions")}</p>
 

@@ -1056,7 +1056,7 @@ fn run_plugins(args: PluginsArgs, store: &SkillStore, json: bool) -> anyhow::Res
         }
         PluginsCommand::Install { id, dry_run: true, .. } => return dry("install", &id),
         PluginsCommand::Install { id, accept_command, .. } => {
-            return plugin_outcome(plugin_ops::install(store, &id, accept_command).map_err(map_app_err)?, json);
+            return plugin_outcome(plugin_ops::install(store, &id, accept_command, None).map_err(map_app_err)?, json);
         }
         PluginsCommand::Update { id, dry_run: true, .. } => return dry("update", &id),
         PluginsCommand::Update { id, accept_command, .. } => {

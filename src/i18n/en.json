@@ -1293,6 +1293,14 @@
     },
     "skillSheet": {
       "from": "From the plugin {{plugin}} · managed by Claude Code"
+    },
+    "otherDevices": {
+      "title_one": "{{count}} plugin from your other computers",
+      "title_other": "{{count}} plugins from your other computers",
+      "hint": "Switched on there and not installed here, according to your backup. Install the ones you want here too.",
+      "needsCli": "Switched on there and not installed here. Installing them needs the claude command.",
+      "onDevices": "On {{devices}}",
+      "addsMarketplace": "also adds the marketplace {{source}}"
     }
   }
 }

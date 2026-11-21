@@ -20,11 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Presets open on Enabled** — A preset shows what it enables first; under **All**, sources with an enabled skill come first.
 - **Agents can manage plugins** — `skills-manager-cli plugins …` lists, searches, installs, updates, removes and turns plugins on or off, and the `manage-skills` skill teaches agents to use it. A marketplace command is never approved on your behalf: the agent has to show it to you first.
 - **Plugin changes appear right away** — A plugin installed or changed with `claude plugin` or `/plugin` shows up without refocusing the window.
+- **Your plugins follow you to your other computers** — Backup now carries which marketplaces and plugins you use. On another computer, **Plugins** lists the ones switched on elsewhere and missing here, with an **Install** button for each, adding the marketplace when needed. Nothing installs on its own. Plugin files and data stay on each machine, and local-folder marketplaces are not carried.
+- **Fixed: a sync could stop with "Nothing to commit" on Windows** — With Git's default line-ending setting on Windows, a sync right after a merge could fail. It now continues.
 
 ### Developer & Governance
 - Plugin state is read from Claude's own files (`installed_plugins.json`, `settings.json` `enabledPlugins`, `plugins/synced`); the app keeps no copy. On/off edits only `enabledPlugins`, atomically, preserving key order and indentation (serde_json `preserve_order` is now enabled crate-wide).
 - Install, update, uninstall and marketplaces drive the `claude` CLI directly, never through a shell, with validated arguments and timeouts. A marketplace-declared command is accepted only by the exact `--accept-command` hash the user approved. `core::plugin_ops` is shared by the app and `skills-manager-cli`; plugin operations are recorded in the activity log.
 - The version check, updater endpoint, release links and the `manage-skills` install source point at this repository (`APP_REPO`). Releases from it need their own updater signing key.
+- Each computer writes only its own `.skills-manager/plugins-<device id>.json` (marketplaces with portable sources, user-scope plugins with on/off); the device id is a local setting. The backup merges a top-level metadata file as a whole, so one file per computer never conflicts; it is written only when it changes, so an unchanged set adds no commit. A two-device integration test covers it.
+- Before merging, a pre-merge commit that finds nothing to commit after staging (CRLF/LF noise under `core.autocrlf=true`) no longer aborts the sync; a tree still dirty after staging is still an error.
 
 ## [1.45.0] - 2026-11-14
 

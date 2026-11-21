@@ -8,6 +8,7 @@ use tauri::State;
 
 use crate::core::claude_cli::{CatalogEntry, CliOutcome, MarketplaceInfo};
 use crate::core::error::AppError;
+use crate::core::plugin_backup;
 use crate::core::plugin_ops::{self, ClaudeCliStatus};
 use crate::core::plugin_scanner::{PluginDetail, PluginInfo, PluginSkillDocument};
 use crate::core::skill_store::SkillStore;
@@ -60,10 +61,24 @@ pub async fn get_plugin_catalog() -> Result<Vec<CatalogEntry>, AppError> {
 pub async fn install_plugin(
     id: String,
     accept_command: Option<String>,
+    marketplace_source: Option<String>,
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<CliOutcome, AppError> {
     let store = store.inner().clone();
-    blocking(move || plugin_ops::install(&store, &id, accept_command)).await
+    blocking(move || {
+        plugin_ops::install(&store, &id, accept_command, marketplace_source.as_deref())
+    })
+    .await
+}
+
+/// Plugins switched on on the user's other computers (from the backup) that
+/// this one has not installed. Offered, never installed automatically.
+#[tauri::command]
+pub async fn get_plugins_from_other_devices(
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Vec<plugin_backup::OfferedPlugin>, AppError> {
+    let store = store.inner().clone();
+    blocking(move || plugin_backup::offered_here(&store)).await
 }
 
 #[tauri::command]

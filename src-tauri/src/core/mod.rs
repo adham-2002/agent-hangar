@@ -22,6 +22,7 @@ pub mod merge;
 pub mod migrations;
 pub mod panic_log;
 pub mod path_guard;
+pub mod plugin_backup;
 pub mod plugin_ops;
 pub mod plugin_scanner;
 pub mod plugin_watcher;

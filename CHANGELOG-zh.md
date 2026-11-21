@@ -19,12 +19,15 @@
 - **技能库中的插件** — Claude Code 插件会作为技能包显示在 Skill 下方。如果同一个技能包既作为插件安装、又作为库中 Skill 部署到 Claude Code，技能库会提示 Claude Code 会重复加载这些 Skill，并提供两种解决方式。
 - **Preset 默认显示已启用** — 打开 Preset 时先显示它启用的内容；在**全部**中，含有已启用 Skill 的来源排在前面。
 - **Agent 可以管理插件** — `skills-manager-cli plugins …` 可列出、搜索、安装、更新、卸载和开关插件，`manage-skills` Skill 会教 Agent 使用它。市场命令绝不会被代为批准：Agent 必须先展示给你。
-- **插件变化即时显示** — 用 `claude plugin` 或 `/plugin` 安装或修改的插件，无需重新聚焦窗口即可显示。
+- **插件会随你到其他电脑** — 备份现在会带上你使用的市场和插件。在另一台电脑上，**插件**页会列出在别处已开启、这里缺少的插件，每个都有**安装**按钮，需要时会同时添加市场。不会自动安装任何东西。插件文件和数据保留在各自的电脑上，本地文件夹形式的市场不会被带走。
+- **修复：Windows 上同步可能因“Nothing to commit”中断** — 在 Windows 默认的 Git 换行设置下，合并后紧接着的同步可能失败，现在会继续进行。
 
 ### 开发者与治理更新
 - 插件状态直接读取 Claude 自己的文件（`installed_plugins.json`、`settings.json` 中的 `enabledPlugins`、`plugins/synced`），应用不保留副本。开关只原子地修改 `enabledPlugins`，保留键顺序和缩进（现已在整个 crate 启用 serde_json 的 `preserve_order`）。
 - 安装、更新、卸载和市场管理直接调用 `claude` CLI，不经过 shell，参数经过校验并设有超时。市场声明的命令只会以用户批准的那个 `--accept-command` 哈希执行。应用与 `skills-manager-cli` 共用 `core::plugin_ops`；插件操作会记录到活动日志。
 - 版本检查、更新地址、发布链接和 `manage-skills` 的安装来源都指向本仓库（`APP_REPO`）。从本仓库发布需要自己的更新签名密钥。
+- 每台电脑只写自己的 `.skills-manager/plugins-<设备 id>.json`（可移植来源的市场、用户范围的插件及其开关）；设备 id 是本地设置。备份把元数据目录下的顶层文件整体合并，所以每台电脑一个文件永远不会冲突；内容不变时不会重写，因此不会产生多余提交。有双设备集成测试覆盖。
+- 合并前的预提交如果在暂存后发现无内容可提交（`core.autocrlf=true` 下的 CRLF/LF 差异），不再中断同步；暂存后仍有未提交改动依旧报错。
 
 ## [1.45.0] - 2026-11-14
 

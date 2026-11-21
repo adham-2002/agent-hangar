@@ -158,14 +158,26 @@ pub fn marketplaces() -> Result<Vec<MarketplaceInfo>, AppError> {
     claude_cli::parse_marketplaces(&raw.stdout)
 }
 
+/// Install `name@marketplace`. With `marketplace_source`, the marketplace is
+/// added first (`--marketplace`), for a plugin that came from another
+/// computer whose marketplace this one does not know yet.
 pub fn install(
     store: &SkillStore,
     id: &str,
     accept_command: Option<String>,
+    marketplace_source: Option<&str>,
 ) -> Result<CliOutcome, AppError> {
     let result = (|| {
         claude_cli::validate_plugin_id(id)?;
-        let mut args = strings(&["plugin", "install", id, "--json"]);
+        let mut args = match marketplace_source {
+            Some(source) => {
+                claude_cli::validate_marketplace_source(source)?;
+                // `--marketplace` takes the bare plugin name.
+                let name = id.split('@').next().unwrap_or(id);
+                strings(&["plugin", "install", name, "--marketplace", source.trim(), "--json"])
+            }
+            None => strings(&["plugin", "install", id, "--json"]),
+        };
         push_accept(&mut args, accept_command)?;
         run_outcome(args, claude_cli::LONG_TIMEOUT)
     })();
@@ -280,10 +292,11 @@ mod tests {
     #[test]
     fn a_rejected_argument_is_logged_as_a_failure_without_running_anything() {
         let (_tmp, store) = store();
-        assert!(install(&store, "--yes", None).is_err());
+        assert!(install(&store, "--yes", None, None).is_err());
+        assert!(install(&store, "a@m", None, Some("--sparse")).is_err());
         assert!(marketplace_add(&store, "--sparse").is_err());
         let entries = store.list_audit(None).unwrap();
-        assert_eq!(entries.len(), 2);
+        assert_eq!(entries.len(), 3);
         assert!(entries.iter().all(|e| !e.success));
     }
 
