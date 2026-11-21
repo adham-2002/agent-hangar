@@ -1046,6 +1046,28 @@ export interface SkillQuality {
 
 export const checkLibraryQuality = () => invoke<SkillQuality[]>("check_library_quality");
 
+export interface PresetQuality {
+  preset_id: string;
+  /** Skills that clash with another skill of the same preset. */
+  skills: SkillQuality[];
+}
+
+/** Per preset, the clashes between the skills it enables. */
+export const checkPresetQuality = () => invoke<PresetQuality[]>("check_preset_quality");
+
+export interface PresetSummary {
+  skills: number;
+  /** Tokens the preset's skills add to every session. */
+  always_on: number;
+  /** Skills that clash with another skill of the preset. */
+  clashes: number;
+  /** Skills with an error or warning of their own. */
+  problems: number;
+}
+
+export const getPresetSummary = (presetId: string) =>
+  invoke<PresetSummary>("get_preset_summary", { presetId });
+
 /** Check a SKILL.md being written; with `skillId`, links resolve in that skill's folder. */
 export const checkSkillDraft = (content: string, skillId?: string | null) =>
   invoke<SkillFinding[]>("check_skill_draft", { content, skillId: skillId ?? null });

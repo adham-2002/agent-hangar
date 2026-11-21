@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.0] - 2026-11-21
+
+### Release Overview
+- See what each preset costs and whether its skills work well together.
+
+### User-facing
+- **Presets in Insights** — A new Presets section shows, for each preset, how many tokens its skills add to every session, a bar of its heaviest skills, and how much the largest one adds when used. Open a preset to see each skill's cost and Claude Code uses in the last 30 days, and how many of its skills went unused.
+- **Skills that clash** — Each preset is checked for skills that get in each other's way when loaded together: two with the same name, or descriptions so alike the agent may pick the wrong one. Only clashes inside the preset count, next to each skill's own problems, with an Edit button to fix them.
+- **On the preset page** — Under a preset's title, one line shows its cost per session and any clashes or problems, linking to the details in Insights.
+
 ## [1.47.0] - 2026-11-21
 
 ### Release Overview

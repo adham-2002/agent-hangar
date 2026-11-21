@@ -1006,6 +1006,8 @@ pub fn run() {
             commands::insights::get_context_costs,
             commands::authoring::check_library_quality,
             commands::authoring::check_skill_draft,
+            commands::authoring::check_preset_quality,
+            commands::authoring::get_preset_summary,
             commands::authoring::create_skill,
             commands::authoring::save_skill_document,
             commands::memory::get_agent_memory,

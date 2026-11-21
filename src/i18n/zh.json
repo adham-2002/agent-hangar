@@ -1353,7 +1353,26 @@
       "edit": "编辑"
     },
     "memoryNote": "Claude Code 还会加载你的指令和记忆：每次会话从全局 CLAUDE.md 加载 {{global}}，在项目中最多再加载 {{project}}。",
-    "memoryLink": "审阅记忆"
+    "memoryLink": "审阅记忆",
+    "presets": {
+      "title": "预设",
+      "hint": "应用每个预设后每次会话增加的开销，以及其中的 Skill 是否互相干扰：名称相同，或描述过于相似以致智能体可能选错。",
+      "empty": "你还没有预设。",
+      "skills_one": "{{count}} 个 Skill",
+      "skills_other": "{{count}} 个 Skill",
+      "clashes_one": "{{count}} 个 Skill 与本预设中的其他 Skill 冲突",
+      "clashes_other": "{{count}} 个 Skill 与本预设中的其他 Skill 冲突",
+      "problems_one": "{{count}} 个 Skill 自身有问题",
+      "problems_other": "{{count}} 个 Skill 自身有问题",
+      "summary": "应用此预设会让每次会话增加约 {{tokens}} 个 token；最大的 Skill 被使用时还会再增加 {{heaviest}}。",
+      "unused_one": "其中 {{count}} 个 Skill 最近 30 天未被使用。",
+      "unused_other": "其中 {{count}} 个 Skill 最近 30 天未被使用。",
+      "together": "协同情况",
+      "fitTogether": "没有冲突：智能体能区分这些 Skill。",
+      "open": "打开预设",
+      "strip": "每次会话约 {{tokens}} 个 token",
+      "details": "详情"
+    }
   },
   "authoring": {
     "newSkill": "新建技能",
