@@ -5,10 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.46.0] - 2026-11-21
 
 ### Release Overview
 - Manage Claude Code plugins alongside your skills: install, update, turn on or off and read them from the app, and manage a whole skill pack at once.
+- See what your skills cost and whether you use them, check them for problems, and write or edit them in the app — or have your agent turn what you just did into a skill.
 
 ### User-facing
 - **Plugins page** — Lists every Claude Code plugin on this computer, including ones synced from your claude.ai account, with what each bundles (skills, commands, agents, hooks, MCP servers). Turn a plugin on or off, update it, or uninstall it. **Browse** searches every plugin in your marketplaces and installs them; **Marketplaces** adds, refreshes and removes marketplaces. Changes apply to new Claude Code sessions.
@@ -17,7 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Read a plugin's skills** — Click a skill a plugin bundles to read its `SKILL.md`.
 - **Packs in Library** — Each source is a pack with its own colour, shown on every card. A pack header turns the whole pack on or off per agent in one click, selects it, or syncs, tags, updates or deletes all of it. Grouping by source is on by default once a source has more than one skill.
 - **Plugins in Library** — Your Claude Code plugins appear as packs below your skills. When the same pack is installed both as a plugin and as library skills in Claude Code, Library warns that Claude Code loads those skills twice and offers both fixes.
-- **Presets open on Enabled** — A preset shows what it enables first; under **All**, sources with an enabled skill come first.
+- **Presets open on Enabled** — A preset shows what it enables first; under **All**, sources with an enabled skill come first. If you pick another view, presets keep opening on it until you change it again.
+- **Library shows all your skills** — Clicking **Library** no longer opens inside the preset you viewed last: it lists every skill, with no preset applied. Click a preset in the sidebar to work in that preset.
+- **Insights** — A new page shows what each agent loads into every session and what that costs in tokens, which skills Claude Code actually uses, and which have gone unused for 30 days, with a one-click clean-up.
+- **Move a skill to the one project that uses it** — Insights lists skills Claude Code loads everywhere but you only use in one project. **Move to project** puts the skill in that project and takes it out of every other session.
+- **Skill quality checks** — Insights and each skill's details flag what stops an agent from finding, loading or choosing a skill: a missing name or description, limits the format sets, a description that never says when to use the skill, overlong instructions, links to files that are not there, invisible characters, and two skills an agent could confuse.
+- **Write and edit skills** — **New skill** in Library creates one from a name, a description and its instructions, checked as you type. **Edit** in a skill's details changes its `SKILL.md`, with a preview; a skill that updates from a source warns that an update will replace your edits.
+- **Your agent can turn what you just did into a skill** — Ask it to save the steps as a skill and it writes a draft, checks it with `skills-manager-cli skills create`, and adds it to your library for the agents you choose, instead of dropping it into one agent's folder.
+- **Fixed: deleting a skill left copies behind** — Deleting a skill now also removes its unchanged copies in your project workspaces, which agents there kept loading. A skill whose files are open in another program is no longer reported deleted while its files stay on disk: the delete is refused with the reason, and nothing changes. Copies kept because you edited them are listed.
 - **Agents can manage plugins** — `skills-manager-cli plugins …` lists, searches, installs, updates, removes and turns plugins on or off, and the `manage-skills` skill teaches agents to use it. A marketplace command is never approved on your behalf: the agent has to show it to you first.
 - **Plugin changes appear right away** — A plugin installed or changed with `claude plugin` or `/plugin` shows up without refocusing the window.
 - **Your plugins follow you to your other computers** — Backup now carries which marketplaces and plugins you use. On another computer, **Plugins** lists the ones switched on elsewhere and missing here, with an **Install** button for each, adding the marketplace when needed. Nothing installs on its own. Plugin files and data stay on each machine, and local-folder marketplaces are not carried.
@@ -29,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The version check, updater endpoint, release links and the `manage-skills` install source point at this repository (`APP_REPO`). Releases from it need their own updater signing key.
 - Each computer writes only its own `.skills-manager/plugins-<device id>.json` (marketplaces with portable sources, user-scope plugins with on/off); the device id is a local setting. The backup merges a top-level metadata file as a whole, so one file per computer never conflicts; it is written only when it changes, so an unchanged set adds no commit. A two-device integration test covers it.
 - Before merging, a pre-merge commit that finds nothing to commit after staging (CRLF/LF noise under `core.autocrlf=true`) no longer aborts the sync; a tree still dirty after staging is still an error.
+- Skill usage is read from Claude Code's transcripts (`~/.claude/projects/**/*.jsonl`), keeping only skill names, times and project folders, cached per file by size and modification time. Context cost is estimated from the files, calibrated against `claude plugin details`, whose own figure is used for plugins when available.
+- `core::skill_lint` holds the quality rules, shared by the app and `skills-manager-cli skills lint`; each finding has a stable `code` and `params` for translation. `skills create <folder>` adds a draft folder as a local skill with no source, refusing drafts with errors.
+- Deleting a skill moves its library folder aside first, so a file in use refuses the whole delete before anything changes; project copies are planned against the library copy and removed only when unchanged. The result lists `errors` and `left_behind` paths.
+- A preset is shown only when the URL names it (`/my-skills?preset=<id>`); the last-viewed preset is still remembered for the command palette.
 
 ## [1.45.0] - 2026-11-14
 

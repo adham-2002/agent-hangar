@@ -6,16 +6,19 @@ import {
   Github,
   HardDrive,
   Globe,
+  Pencil,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../utils";
 import {
+  checkSkillDraft,
   getSkillDocument,
   getSourceSkillDocument,
   getSkillSourceDiff,
   type ManagedSkill,
   type Project,
   type SkillDocument,
+  type SkillFinding,
   type SourceSkillDocument,
   type SkillSourceDiff,
   type SkillToolToggle,
@@ -27,6 +30,7 @@ import { SkillMarkdown } from "./SkillMarkdown";
 import { AgentToggleSection, type AgentToggleItem } from "./AgentToggleSection";
 import { SkillProjectsSection } from "./SkillProjectsSection";
 import { SyncDots } from "./SyncDots";
+import { SkillFindings } from "./SkillFindings";
 
 interface Props {
   skill: ManagedSkill | null;
@@ -39,6 +43,8 @@ interface Props {
   isActivePreset: boolean;
   projects?: Project[];
   onProjectsChanged?: () => void;
+  /** Opens the SKILL.md editor; without it the panel is read-only. */
+  onEdit?: () => void;
 }
 
 export function SkillDetailPanel({
@@ -51,6 +57,7 @@ export function SkillDetailPanel({
   isActivePreset,
   projects,
   onProjectsChanged,
+  onEdit,
 }: Props) {
   if (!skill) return null;
 
@@ -75,6 +82,7 @@ export function SkillDetailPanel({
       isActivePreset={isActivePreset}
       projects={projects}
       onProjectsChanged={onProjectsChanged}
+      onEdit={onEdit}
     />
   );
 }
@@ -89,6 +97,7 @@ function SkillDetailPanelContent({
   isActivePreset,
   projects,
   onProjectsChanged,
+  onEdit,
 }: {
   skill: ManagedSkill;
   onClose: () => void;
@@ -100,9 +109,11 @@ function SkillDetailPanelContent({
   isActivePreset: boolean;
   projects?: Project[];
   onProjectsChanged?: () => void;
+  onEdit?: () => void;
 }) {
   const { t } = useTranslation();
   const [doc, setDoc] = useState<SkillDocument | null>(null);
+  const [findings, setFindings] = useState<SkillFinding[]>([]);
   const [sourceDoc, setSourceDoc] = useState<SourceSkillDocument | null>(null);
   const [sourceDiff, setSourceDiff] = useState<SkillSourceDiff | null>(null);
   const [sourceDiffFailed, setSourceDiffFailed] = useState(false);
@@ -136,6 +147,11 @@ function SkillDetailPanelContent({
       .then((nextDoc) => {
         if (requestId === localRequestIdRef.current) {
           setDoc(nextDoc);
+          checkSkillDraft(nextDoc.content, skillId)
+            .then((next) => {
+              if (requestId === localRequestIdRef.current) setFindings(next);
+            })
+            .catch(() => {});
         }
       })
       .catch(() => {
@@ -337,9 +353,26 @@ function SkillDetailPanelContent({
         />
       )}
 
-      {supportsSourceDiff && (
+      {findings.length > 0 && (
+        <div className="mb-4 rounded-xl border border-border-subtle px-4 py-3">
+          <div className="mb-1.5 text-[12px] font-medium text-secondary">{t("quality.panelTitle")}</div>
+          <SkillFindings findings={findings} />
+        </div>
+      )}
+
+      {(supportsSourceDiff || onEdit) && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          {(["local", "diff", "source"] as const).map((tab) => (
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="order-last ml-auto inline-flex items-center gap-1 rounded-full bg-surface-hover px-3 py-1.5 text-[12px] font-medium text-secondary transition-colors hover:text-primary"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              {t("authoring.edit")}
+            </button>
+          )}
+          {supportsSourceDiff && (["local", "diff", "source"] as const).map((tab) => (
             <button
               key={tab}
               type="button"

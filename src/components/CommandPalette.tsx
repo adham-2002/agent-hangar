@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { getPresetIconOption } from "../lib/presetIcons";
+import { presetPath } from "../lib/presetRoute";
 import { normalizeSkillSearch, skillSearchMatches } from "../lib/skillSearch";
 import { cn } from "../utils";
 
@@ -118,9 +119,7 @@ export function CommandPalette() {
             if (viewedPreset?.id !== s.id) {
               setViewedPresetId(s.id);
             }
-            if (!window.location.pathname.endsWith("/my-skills")) {
-              navigate("/my-skills");
-            }
+            navigate(presetPath(s.id));
           },
         };
       });

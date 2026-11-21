@@ -182,6 +182,72 @@ export function unusedItems(
   });
 }
 
+/** Uses needed before "only ever used in one project" means anything. */
+export const PROJECT_ONLY_MIN_USES = 3;
+
+/** A path folded for comparison: forward slashes, no trailing slash, and
+ *  lowercase on Windows, whose paths are case-insensitive. */
+export function normalizePath(path: string): string {
+  const slashed = path.replace(/\\/g, "/").replace(/\/+$/, "");
+  return /^[a-zA-Z]:\//.test(slashed) || slashed.startsWith("//") ? slashed.toLowerCase() : slashed;
+}
+
+function isInside(path: string, root: string) {
+  return path === root || path.startsWith(`${root}/`);
+}
+
+/** A skill Claude Code loads everywhere but has only used in one project. */
+export interface ProjectOnlyCandidate {
+  item: BudgetItem;
+  /** The folder to move it into, as the transcripts or the project list spell it. */
+  projectPath: string;
+  /** The registered project, when the folder already is one. */
+  projectId: string | null;
+}
+
+/**
+ * Global Claude Code skills that have only ever been used inside one project,
+ * often enough to tell. Moving such a skill into that project keeps it where
+ * it is used and takes it out of every other session. A session started in a
+ * subfolder of a registered project counts as that project. Sessions in the
+ * home folder are not a project, so a skill used there is left alone.
+ */
+export function projectOnlyCandidates(
+  budget: AgentBudget | undefined,
+  report: UsageReport | null,
+  projects: { id: string; path: string }[],
+  homeDir: string | null,
+  nowSeconds: number,
+): ProjectOnlyCandidate[] {
+  if (!budget?.tracksUsage || !report?.since) return [];
+  if (nowSeconds - report.since < UNUSED_DAYS * DAY_SECONDS) return [];
+  const roots = projects
+    .map((p) => ({ id: p.id, path: p.path, norm: normalizePath(p.path) }))
+    .sort((a, b) => b.norm.length - a.norm.length);
+  const home = homeDir ? normalizePath(homeDir) : null;
+
+  const out: ProjectOnlyCandidate[] = [];
+  for (const item of budget.items) {
+    const usage = item.usage;
+    if (item.kind !== "skill" || !usage || usage.uses < PROJECT_ONLY_MIN_USES || usage.projects.length === 0) {
+      continue;
+    }
+    const folders = new Map<string, { path: string; id: string | null }>();
+    for (const cwd of usage.projects) {
+      const norm = normalizePath(cwd);
+      const root = roots.find((r) => isInside(norm, r.norm));
+      const key = root?.norm ?? norm;
+      folders.set(key, root ? { path: root.path, id: root.id } : { path: cwd, id: null });
+    }
+    if (folders.size !== 1) continue;
+    const [[key, folder]] = [...folders];
+    // The home folder, or a folder above it, holds everything: not a project.
+    if (home !== null && isInside(home, key)) continue;
+    out.push({ item, projectPath: folder.path, projectId: folder.id });
+  }
+  return out.sort((a, b) => b.item.alwaysOn - a.item.alwaysOn);
+}
+
 /** Most used Claude Code items, busiest first. */
 export function mostUsed(budget: AgentBudget | undefined, limit = 10): BudgetItem[] {
   return (budget?.items ?? [])

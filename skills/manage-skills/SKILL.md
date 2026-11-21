@@ -1,6 +1,6 @@
 ---
 name: manage-skills
-description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Prefer this over direct agent-folder installs because Skills Manager preserves source metadata, preset membership, updates, and cross-agent deployment state.
+description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants to turn work done in the session into a new skill, wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Prefer this over direct agent-folder installs because Skills Manager preserves source metadata, preset membership, updates, and cross-agent deployment state.
 ---
 
 ## Before doing anything
@@ -125,6 +125,34 @@ Internally, presets are still stored as scenarios for backward-compatible Git Ba
 4. Otherwise → error; pass `--local` / `--git` / `--skillssh` to disambiguate
 
 **Always verify after install** with `skills list` or `skills show <name>` so you can confirm the skill landed and report the preset / sync state back to the user.
+
+## Turn what you just did into a skill
+
+When the user asks for a skill made from work done in this session ("save these steps as a skill", "make a skill for what we just did"), write it as a draft and add it through the library — **never write it straight into `~/.claude/skills` or another agent's folder**, where it would reach one agent, miss the backup, and skip the checks below.
+
+If a skill-writing skill is available (such as `skill-creator`), use it to write the draft — it is better at structure, trigger wording and testing — but point its output at a scratch folder, then continue from step 2 here. If it already saved the skill into an agent's folder, bring it into the library with `skills adopt <that-skill-folder>` instead of `create`.
+
+1. Write the draft in a scratch folder named after the skill: `SKILL.md` plus any scripts or reference files it uses. The frontmatter needs a `name` (lowercase letters, digits, single hyphens — it becomes the folder name everywhere) and a `description` that says what the skill does **and when to use it**: agents pick a skill by its description alone. In the body, record the steps that worked, the commands and paths that mattered, and the mistakes to avoid — not the dead ends.
+2. Add it:
+
+   ```bash
+   "$SM" --json skills create <draft-folder>
+   ```
+
+   A draft with errors is refused with the reason; fix it and run again. On success the reply carries `findings` — warnings and tips. Fix the warnings that apply by editing the library copy (its path is in `skills show <name>`), or tell the user about them.
+3. Ask which agents should get it (default: the one you are), then deploy: `"$SM" skills deploy <name> --agent claude_code`. For a skill that only makes sense in this repository, use the `projects deploy` command instead.
+4. Delete the draft folder.
+
+If the name is taken, the library already has a skill by that name: ask whether to update that one instead (edit its library copy) or pick another name.
+
+## Quality check
+
+```bash
+"$SM" --json skills lint            # every library skill with a problem
+"$SM" --json skills lint <name>     # one skill
+```
+
+Reports what stops an agent finding, loading or choosing a skill: a missing or invalid frontmatter, name and description limits (64 / 1024 characters), a vague description, overlong instructions, links to files the skill does not have, invisible characters, and two skills with the same name or near-identical descriptions. Each finding has a `severity` (`error`, `warning`, `info`), a stable `code` and a `message`. Run it after installing or writing a skill, and report errors and warnings to the user; it changes nothing.
 
 ## Search
 

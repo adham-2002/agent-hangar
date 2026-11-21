@@ -25,9 +25,11 @@ import {
   Share2,
   Tag,
   Trash2,
+  FilePlus,
 } from "lucide-react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { presetIdFromLocation } from "../lib/presetRoute";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "../utils";
@@ -38,6 +40,7 @@ import { assignSourceColors } from "../lib/sourceColor";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TagRenameDialog } from "../components/TagRenameDialog";
 import { SkillDetailPanel } from "../components/SkillDetailPanel";
+import { SkillEditorDialog, type SkillEditorMode } from "../components/SkillEditorDialog";
 import { MultiSelectToolbar } from "../components/MultiSelectToolbar";
 import { BatchTagDialog } from "../components/BatchTagDialog";
 import { BatchSyncAgentDialog } from "../components/BatchSyncAgentDialog";
@@ -151,6 +154,19 @@ function getToolDisplayName(toolKey: string, tools: ToolInfo[]) {
   return tools.find((tool) => tool.key === toolKey)?.display_name || toolKey;
 }
 
+type PresetFilterMode = "all" | "enabled" | "available";
+const PRESET_FILTER_LS_KEY = "skills-manager.presetFilterMode";
+
+function readPresetFilterMode(): PresetFilterMode {
+  try {
+    const saved = localStorage.getItem(PRESET_FILTER_LS_KEY);
+    if (saved === "all" || saved === "enabled" || saved === "available") return saved;
+  } catch {
+    // Fall through to the default.
+  }
+  return "enabled";
+}
+
 function centralDirName(skill: ManagedSkill) {
   return skill.central_path.split(/[\\/]/).filter(Boolean).pop() || skill.name;
 }
@@ -158,8 +174,10 @@ function centralDirName(skill: ManagedSkill) {
 export function MySkills() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
-    viewedPreset,
+    viewedPreset: lastViewedPreset,
+    setViewedPresetId,
     activePreset,
     tools,
     managedSkills: skills,
@@ -172,6 +190,13 @@ export function MySkills() {
     projects,
     refreshProjects,
   } = useApp();
+  // A preset is shown only when the URL names it; plain Library is every
+  // skill with no preset applied (see lib/presetRoute).
+  const presetParam = presetIdFromLocation(location);
+  useEffect(() => {
+    if (presetParam && presetParam !== lastViewedPreset?.id) setViewedPresetId(presetParam);
+  }, [presetParam, lastViewedPreset?.id, setViewedPresetId]);
+  const viewedPreset = presetParam && lastViewedPreset?.id === presetParam ? lastViewedPreset : null;
   const [viewMode, setViewMode, groupBySourceChoice, setGroupBySource] = useSkillViewMode();
   const libraryGroups = useMemo(() => buildSourceGroups(skills), [skills]);
   // Until the user picks, group as soon as the library holds a multi-skill pack.
@@ -200,8 +225,19 @@ export function MySkills() {
   // default would hide the only skill it holds without saving a row.
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
   const [sourceSelection, setSourceSelection] = useState<Set<string>>(new Set());
-  // A preset opens on what it actually enables; "All" is one click away.
-  const [filterMode, setFilterMode] = useState<"all" | "enabled" | "available">("enabled");
+  // A preset opens on what it actually enables; "All" is one click away, and
+  // once the user picks another view it stays until they change it again.
+  const [filterMode, setFilterModeState] = useState<PresetFilterMode>(readPresetFilterMode);
+  const setFilterMode = useCallback((mode: PresetFilterMode) => {
+    setFilterModeState(mode);
+    try {
+      localStorage.setItem(PRESET_FILTER_LS_KEY, mode);
+    } catch {
+      // Unavailable storage only costs remembering the choice.
+    }
+  }, []);
+  // The plain library has no preset to filter by.
+  const effectiveFilter: PresetFilterMode = viewedPreset ? filterMode : "all";
   // Which channel (`source_type`) a skill came through — git, skills.sh, a
   // site, a local install, an import. Distinct from the Source grouping below.
   const [channelFilters, setChannelFilters] = useState<Set<string>>(new Set());
@@ -322,12 +358,12 @@ export function MySkills() {
     channelFilters.size > 0 ||
     tagFilters.size > 0 ||
     sourceSelection.size > 0 ||
-    filterMode !== "all";
+    effectiveFilter !== "all";
   // The preset opens on "Enabled", so an empty list usually means nothing is
   // enabled yet rather than a filter hiding skills; that gets its own message.
   const nothingEnabledYet =
     !!viewedPreset &&
-    filterMode === "enabled" &&
+    effectiveFilter === "enabled" &&
     skills.length > 0 &&
     normalizedQuery === "" &&
     channelFilters.size === 0 &&
@@ -338,7 +374,9 @@ export function MySkills() {
     setChannelFilters(new Set());
     setTagFilters(new Set());
     setSourceSelection(new Set());
-    setFilterMode("all");
+    // Only inside a preset: the plain library has no such filter on, and
+    // clearing there should not change how presets open.
+    if (viewedPreset) setFilterMode("all");
   };
 
   const skillDisplayNames = useMemo(() => {
@@ -481,7 +519,7 @@ export function MySkills() {
       [...channelFilters].sort(),
       [...tagFilters].sort(),
       [...sourceSelection].sort(),
-      filterMode,
+      effectiveFilter,
       viewedPreset?.id ?? null,
     ]),
     escapeEnabled: !batchTagDialogOpen && !batchSyncDialogOpen && !batchDeleteConfirm,
@@ -552,6 +590,9 @@ export function MySkills() {
     () => skills.find((skill) => skill.id === detailSkillId) || null,
     [detailSkillId, skills]
   );
+  const [skillEditor, setSkillEditor] = useState<SkillEditorMode | null>(null);
+  // Bumped after an edit, so the open detail panel reads the new SKILL.md.
+  const [docVersion, setDocVersion] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -793,6 +834,19 @@ export function MySkills() {
     };
   }, []);
 
+  // Copies a delete kept (edited in a project) or could not remove: still on
+  // disk, so an agent may still load them.
+  const reportLeftBehind = useCallback(
+    (left: api.BatchDeleteSkillsResult["left_behind"]) => {
+      if (left.length === 0) return;
+      toast.warning(t("mySkills.deleteLeftBehind", { count: left.length }), {
+        description: left.map((l) => `${l.path}: ${l.reason}`).join("\n"),
+        duration: 15000,
+      });
+    },
+    [t],
+  );
+
   const handleDeleteSkill = useCallback(
     (skill: ManagedSkill) => {
       setDeletingIds((prev) => {
@@ -803,9 +857,10 @@ export function MySkills() {
       });
       void (async () => {
         try {
-          await api.deleteManagedSkill(skill.id);
+          const result = await api.deleteManagedSkill(skill.id);
           if (selectedSkill?.id === skill.id) closeSkillDetail();
           toast.success(`${skill.name} ${t("mySkills.deleted")}`);
+          reportLeftBehind(result.left_behind);
         } catch (error: unknown) {
           toast.error(getErrorMessage(error, t("common.error")));
         } finally {
@@ -819,7 +874,7 @@ export function MySkills() {
         }
       })();
     },
-    [selectedSkill, closeSkillDetail, t, scheduleRefreshAfterDelete]
+    [selectedSkill, closeSkillDetail, t, scheduleRefreshAfterDelete, reportLeftBehind]
   );
 
   const handleBatchDelete = async () => {
@@ -833,8 +888,11 @@ export function MySkills() {
         toast.success(t("mySkills.batchDeleted", { count: result.deleted }));
       }
       if (result.failed.length > 0) {
-        toast.error(t("mySkills.batchDeleteFailed", { count: result.failed.length }));
+        toast.error(t("mySkills.batchDeleteFailed", { count: result.failed.length }), {
+          description: result.errors.map((e) => `${e.name || e.skill_id}: ${e.reason}`).join("\n"),
+        });
       }
+      reportLeftBehind(result.left_behind);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, t("common.error")));
     } finally {
@@ -1365,12 +1423,19 @@ export function MySkills() {
     <div className="app-page">
       <div className="app-page-header pr-2 pb-1 flex items-center justify-between gap-3">
         <h1 className="app-page-title flex items-center gap-2">
-          {t("mySkills.title")}
+          {viewedPreset ? viewedPreset.name : t("mySkills.title")}
           <span className="app-badge">
             {skills.length}
           </span>
         </h1>
-
+        <button
+          type="button"
+          onClick={() => setSkillEditor({ kind: "create" })}
+          className="app-button-secondary inline-flex shrink-0 items-center gap-1.5"
+        >
+          <FilePlus className="h-3.5 w-3.5" />
+          {t("authoring.newSkill")}
+        </button>
       </div>
 
       <div className="app-toolbar">
@@ -1389,20 +1454,22 @@ export function MySkills() {
             />
           </div>
 
-          <div className="app-segmented app-toolbar-segmented shrink-0">
-            {(["all", "enabled", "available"] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setFilterMode(mode)}
-                className={cn(
-                  "app-segmented-button",
-                  filterMode === mode && "app-segmented-button-active"
-                )}
-              >
-                {t(`mySkills.filters.${mode}`)}
-              </button>
-            ))}
-          </div>
+          {viewedPreset && (
+            <div className="app-segmented app-toolbar-segmented shrink-0">
+              {(["all", "enabled", "available"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setFilterMode(mode)}
+                  className={cn(
+                    "app-segmented-button",
+                    filterMode === mode && "app-segmented-button-active"
+                  )}
+                >
+                  {t(`mySkills.filters.${mode}`)}
+                </button>
+              ))}
+            </div>
+          )}
 
         </div>
 
@@ -1866,12 +1933,13 @@ export function MySkills() {
                             },
                           ]}
                         />
-                        <ToggleSwitch
-                          checked={enabledInPreset}
-                          disabled={!viewedPreset}
-                          onChange={() => handleTogglePreset(skill)}
-                          title={enabledInPreset ? t("mySkills.enabledButton") : t("mySkills.enable")}
-                        />
+                        {viewedPreset && (
+                          <ToggleSwitch
+                            checked={enabledInPreset}
+                            onChange={() => handleTogglePreset(skill)}
+                            title={enabledInPreset ? t("mySkills.enabledButton") : t("mySkills.enable")}
+                          />
+                        )}
                       </>
                     )}
                   </div>
@@ -2227,12 +2295,13 @@ export function MySkills() {
                         },
                       ]}
                     />
-                    <ToggleSwitch
-                      checked={enabledInPreset}
-                      disabled={!viewedPreset}
-                      onChange={() => handleTogglePreset(skill)}
-                      title={enabledInPreset ? t("mySkills.enabledButton") : t("mySkills.enable")}
-                    />
+                    {viewedPreset && (
+                      <ToggleSwitch
+                        checked={enabledInPreset}
+                        onChange={() => handleTogglePreset(skill)}
+                        title={enabledInPreset ? t("mySkills.enabledButton") : t("mySkills.enable")}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -2257,7 +2326,7 @@ export function MySkills() {
       )}
 
       <SkillDetailPanel
-        key={selectedSkill?.id ?? "skill-detail-empty"}
+        key={`${selectedSkill?.id ?? "skill-detail-empty"}:${docVersion}`}
         skill={selectedSkill}
         onClose={closeSkillDetail}
         tools={tools}
@@ -2267,7 +2336,19 @@ export function MySkills() {
         isActivePreset={Boolean(viewedPreset && viewedPreset.id === activePreset?.id)}
         projects={projects}
         onProjectsChanged={refreshProjects}
+        onEdit={selectedSkill ? () => setSkillEditor({ kind: "edit", skill: selectedSkill }) : undefined}
       />
+
+      <SkillEditorDialog
+        mode={skillEditor}
+        onClose={() => setSkillEditor(null)}
+        onSaved={async (skillId) => {
+          await refreshManagedSkills();
+          setDocVersion((v) => v + 1);
+          openSkillDetailById(skillId);
+        }}
+      />
+
 
       <ConfirmDialog
         open={pendingRemoval !== null}

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { ManagedSkill, PluginInfo, SkillUsage, ToolInfo, UsageReport } from "./tauri";
-import { agentBudgets, attributeUsage, DAY_SECONDS, formatTokens, mostUsed, unusedItems } from "./insights";
+import {
+  agentBudgets,
+  attributeUsage,
+  DAY_SECONDS,
+  formatTokens,
+  mostUsed,
+  projectOnlyCandidates,
+  unusedItems,
+} from "./insights";
 
 const NOW = 1_800_000_000;
 
@@ -121,6 +129,55 @@ describe("agentBudgets", () => {
     const fresh = [skill("a", "a", ["claude_code"]), skill("b", "b", ["claude_code"], 5)];
     const ids = unusedItems(budgets[0], report([]), fresh, NOW).map((i) => i.id);
     expect(ids).not.toContain("b");
+  });
+});
+
+describe("projectOnlyCandidates", () => {
+  const usedIn = (name: string, uses: number, projects: string[]): SkillUsage => ({
+    ...row(name, uses, 0),
+    projects,
+  });
+  const skills = [
+    skill("seo", "seo", ["claude_code"]),
+    skill("pdf", "pdf", ["claude_code"]),
+    skill("git", "git", ["claude_code"]),
+    skill("rare", "rare", ["claude_code"]),
+    skill("home", "home", ["claude_code"]),
+  ];
+  const build = (rows: SkillUsage[]) =>
+    agentBudgets({
+      skills,
+      tools: [tool("claude_code")],
+      plugins: [],
+      skillCosts: new Map(skills.map((s, i) => [s.id, { always_on: 100 - i, on_invoke: 0 }])),
+      pluginCosts: new Map(),
+      pluginColorKeys: new Map(),
+      usage: attributeUsage(report(rows), skills, [], {}),
+    })[0];
+  const rows = [
+    // Two sessions in subfolders of one registered project.
+    usedIn("seo", 5, ["E:\\Sites\\shop\\web", "e:/sites/shop/"]),
+    // An unregistered folder.
+    usedIn("pdf", 4, ["/home/me/papers"]),
+    // Two projects: stays global.
+    usedIn("git", 9, ["/home/me/a", "/home/me/b"]),
+    // Too few uses to tell.
+    usedIn("rare", 2, ["/home/me/papers"]),
+    // The home folder is not a project.
+    usedIn("home", 6, ["/home/me"]),
+  ];
+  const projects = [{ id: "p1", path: "E:\\Sites\\shop" }];
+
+  it("suggests a skill used in one project, mapping subfolders to the registered project", () => {
+    const out = projectOnlyCandidates(build(rows), report(rows), projects, "/home/me", NOW);
+    expect(out.map((c) => [c.item.id, c.projectPath, c.projectId])).toEqual([
+      ["seo", "E:\\Sites\\shop", "p1"],
+      ["pdf", "/home/me/papers", null],
+    ]);
+  });
+
+  it("says nothing while the transcripts cover less than 30 days", () => {
+    expect(projectOnlyCandidates(build(rows), report(rows, 10), projects, "/home/me", NOW)).toEqual([]);
   });
 });
 
