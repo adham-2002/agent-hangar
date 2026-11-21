@@ -9,6 +9,7 @@
     "lobsterAgents": "Lobster Agents",
     "installSkills": "Install Skills",
     "plugins": "Plugins",
+    "insights": "Insights",
     "backup": "Backup",
     "presets": "Presets",
     "newPreset": "New Preset",
@@ -1301,6 +1302,52 @@
       "needsCli": "Switched on there and not installed here. Installing them needs the claude command.",
       "onDevices": "On {{devices}}",
       "addsMarketplace": "also adds the marketplace {{source}}"
+    }
+  },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "What your agents load into every session, and which skills you actually use.",
+    "loading": "Reading your sessions…",
+    "loadFailed": "Could not load insights",
+    "never": "never",
+    "today": "today",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "budget": {
+      "title": "Context budget",
+      "hint": "Every enabled skill and plugin is listed in each session, and that listing costs tokens before you type anything. Bigger bars leave less room for your work.",
+      "empty": "No agent has skills or plugins enabled.",
+      "total": "≈ {{tokens}} tokens in every session",
+      "item": "Skill or plugin",
+      "alwaysOn": "Every session",
+      "onInvoke": "When used",
+      "uses30": "Uses, 30 days",
+      "footnote": "* Estimated from the files. Plugin figures without * are Claude Code's own. Bundled MCP servers are not counted."
+    },
+    "usage": {
+      "title": "Most used in Claude Code",
+      "source_one": "From {{count}} Claude Code session since {{since}}. Other agents do not record which skills they use.",
+      "source_other": "From {{count}} Claude Code sessions since {{since}}. Other agents do not record which skills they use.",
+      "noData": "No Claude Code sessions found yet.",
+      "row_one": "{{count}} use in 30 days · {{total}} in all · last {{last}}",
+      "row_other": "{{count}} uses in 30 days · {{total}} in all · last {{last}}"
+    },
+    "unused": {
+      "title": "Not used in {{days}} days",
+      "hint": "These still cost context in every Claude Code session. Removing a skill from Claude Code keeps it in your library; turning a plugin off keeps it installed.",
+      "none": "Everything enabled in Claude Code has been used in the last 30 days.",
+      "tooEarly": "Your Claude Code sessions cover less than {{days}} days, too short to call anything unused yet.",
+      "cost": "≈ {{tokens}} tokens per session",
+      "cleanUp_one": "Clean up {{count}} (saves ≈ {{tokens}} tokens)",
+      "cleanUp_other": "Clean up {{count}} (saves ≈ {{tokens}} tokens)",
+      "confirmTitle_one": "Clean up {{count}} item?",
+      "confirmTitle_other": "Clean up {{count}} items?",
+      "confirmMessage": "Skills are removed from Claude Code but stay in your library; plugins are turned off but stay installed. You can switch any of them back on later.",
+      "confirm": "Clean up",
+      "cleaned_one": "Cleaned up {{count}} item",
+      "cleaned_other": "Cleaned up {{count}} items",
+      "cleanFailed_one": "{{count}} item could not be cleaned up",
+      "cleanFailed_other": "{{count}} items could not be cleaned up"
     }
   }
 }

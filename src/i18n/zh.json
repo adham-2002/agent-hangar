@@ -9,6 +9,7 @@
     "lobsterAgents": "龙虾 Agent",
     "installSkills": "安装 Skills",
     "plugins": "插件",
+    "insights": "洞察",
     "backup": "备份",
     "presets": "Preset",
     "newPreset": "新建 Preset",
@@ -1290,6 +1291,45 @@
       "needsCli": "这些插件在那里已开启、这里尚未安装。安装需要 claude 命令。",
       "onDevices": "在 {{devices}} 上",
       "addsMarketplace": "会同时添加市场 {{source}}"
+    }
+  },
+  "insights": {
+    "title": "洞察",
+    "subtitle": "你的 Agent 在每个会话中加载了什么，以及你实际用到了哪些 Skill。",
+    "loading": "正在读取你的会话…",
+    "loadFailed": "无法加载洞察",
+    "never": "从未",
+    "today": "今天",
+    "daysAgo_other": "{{count}} 天前",
+    "budget": {
+      "title": "上下文预算",
+      "hint": "每个已启用的 Skill 和插件都会在每次会话中列出，这在你输入任何内容之前就会消耗 token。条越长，留给你工作的空间越少。",
+      "empty": "没有 Agent 启用 Skill 或插件。",
+      "total": "每个会话约 {{tokens}} token",
+      "item": "Skill 或插件",
+      "alwaysOn": "每个会话",
+      "onInvoke": "使用时",
+      "uses30": "30 天使用次数",
+      "footnote": "* 根据文件估算。没有 * 的插件数字来自 Claude Code 本身。不计算插件自带的 MCP 服务器。"
+    },
+    "usage": {
+      "title": "Claude Code 中最常用",
+      "source_other": "来自 {{since}} 以来的 {{count}} 个 Claude Code 会话。其他 Agent 不会记录用到了哪些 Skill。",
+      "noData": "还没有找到 Claude Code 会话。",
+      "row_other": "30 天内 {{count}} 次 · 共 {{total}} 次 · 最近 {{last}}"
+    },
+    "unused": {
+      "title": "{{days}} 天内未使用",
+      "hint": "这些仍会在每个 Claude Code 会话中占用上下文。从 Claude Code 移除 Skill 会保留在库中；关闭插件会保留安装。",
+      "none": "Claude Code 中启用的内容在最近 30 天内都有使用。",
+      "tooEarly": "你的 Claude Code 会话不足 {{days}} 天，暂时无法判断哪些未使用。",
+      "cost": "每个会话约 {{tokens}} token",
+      "cleanUp_other": "清理 {{count}} 项（节省约 {{tokens}} token）",
+      "confirmTitle_other": "清理 {{count}} 项？",
+      "confirmMessage": "Skill 会从 Claude Code 移除但保留在库中；插件会被关闭但保留安装。之后可以随时重新开启。",
+      "confirm": "清理",
+      "cleaned_other": "已清理 {{count}} 项",
+      "cleanFailed_other": "{{count}} 项未能清理"
     }
   }
 }

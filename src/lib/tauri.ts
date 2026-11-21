@@ -987,3 +987,38 @@ export interface PluginSkillDocument {
 /** A bundled skill's SKILL.md, read from inside the plugin's folder. */
 export const getPluginSkillDocument = (installPath: string, skill: string) =>
   invoke<PluginSkillDocument>("get_plugin_skill_document", { installPath, skill });
+
+// ── Insights: usage and context cost ──
+
+export interface SkillUsage {
+  /** As invoked: `name`, or `plugin:skill`. */
+  name: string;
+  invoked: number;
+  failed: number;
+  typed: number;
+  last_30_days: number;
+  /** Unix seconds. */
+  last_used: number | null;
+  projects: string[];
+}
+
+export interface UsageReport {
+  sessions: number;
+  /** Unix seconds of the oldest event: usage before it is unknown. */
+  since: number | null;
+  skills: SkillUsage[];
+}
+
+export interface ContextCost {
+  always_on: number;
+  on_invoke: number;
+}
+
+export interface ContextCosts {
+  skills: { id: string; cost: ContextCost }[];
+  plugins: { id: string; cost: ContextCost; source: "claude" | "estimate" }[];
+}
+
+export const getSkillUsage = () => invoke<UsageReport>("get_skill_usage");
+
+export const getContextCosts = () => invoke<ContextCosts>("get_context_costs");
