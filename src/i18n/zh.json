@@ -1283,6 +1283,13 @@
     },
     "skillSheet": {
       "from": "来自插件 {{plugin}} · 由 Claude Code 管理"
+    },
+    "otherDevices": {
+      "title_other": "来自你其他电脑的 {{count}} 个插件",
+      "hint": "根据你的备份，这些插件在那里已开启、这里尚未安装。可以选择在这里也安装。",
+      "needsCli": "这些插件在那里已开启、这里尚未安装。安装需要 claude 命令。",
+      "onDevices": "在 {{devices}} 上",
+      "addsMarketplace": "会同时添加市场 {{source}}"
     }
   }
 }

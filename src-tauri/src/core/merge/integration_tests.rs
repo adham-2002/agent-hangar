@@ -260,6 +260,50 @@ fn content_edit_plus_rename_compose_and_both_directions_converge() {
     assert_eq!(a.tree_oid(), b.tree_oid());
 }
 
+// ── per-device plugin lists (core/plugin_backup.rs) ──
+
+/// Each computer writes only its own `.skills-manager/plugins-<id>.json`.
+/// After both have synced, both must hold both files: the plugin set of one
+/// computer can never overwrite another's.
+#[test]
+fn per_device_plugin_lists_both_survive_a_two_way_sync() {
+    let env = setup();
+    let (a, b) = seeded_pair(&env);
+    let list = |dev: &Device, id: &str, plugin: &str| {
+        std::fs::write(
+            dev.skills.join(format!(".skills-manager/plugins-{id}.json")),
+            format!(
+                r#"{{"schema_version": 1, "device_id": "{id}", "device_name": "{id}", "marketplaces": [], "plugins": [{{"id": "{plugin}", "enabled": true}}]}}"#
+            ),
+        )
+        .unwrap();
+    };
+
+    a.activate();
+    list(&a, "dev-a", "seo@market");
+    a.commit("plugins on A");
+    a.push();
+
+    b.activate();
+    list(&b, "dev-b", "superpowers@obra");
+    b.commit("plugins on B");
+    let summary = b.pull();
+    assert!(summary.new_conflicts.is_empty(), "{summary:?}");
+    assert!(b.skills.join(".skills-manager/plugins-dev-a.json").is_file());
+    assert!(b.skills.join(".skills-manager/plugins-dev-b.json").is_file());
+    b.push();
+
+    // A changes its own list while B's arrives: still no conflict, both kept.
+    a.activate();
+    list(&a, "dev-a", "code-review@official");
+    a.commit("plugins on A again");
+    let summary = a.pull();
+    assert!(summary.new_conflicts.is_empty(), "{summary:?}");
+    let own = std::fs::read_to_string(a.skills.join(".skills-manager/plugins-dev-a.json")).unwrap();
+    assert!(own.contains("code-review@official"), "A's newer list is kept");
+    assert!(a.skills.join(".skills-manager/plugins-dev-b.json").is_file(), "B's list arrived");
+}
+
 // ── true conflict → pending → cross-device visibility → resolutions ──
 
 #[test]

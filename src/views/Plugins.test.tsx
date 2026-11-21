@@ -19,6 +19,7 @@ const api = vi.hoisted(() => ({
   removeMarketplace: vi.fn(),
   updateMarketplaces: vi.fn(),
   getPluginSkillDocument: vi.fn(),
+  getPluginsFromOtherDevices: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
 vi.mock("react-i18next", () => ({
@@ -70,6 +71,7 @@ beforeEach(() => {
   api.getClaudeCliStatus.mockResolvedValue({ available: true, path: "/bin/claude" });
   api.getPluginCatalog.mockResolvedValue([]);
   api.listMarketplaces.mockResolvedValue([]);
+  api.getPluginsFromOtherDevices.mockResolvedValue([]);
 });
 
 const ok = { ok: true, outcome: "installed", message: null, failure_code: null, shown_command: null };
@@ -276,5 +278,26 @@ describe("Plugins view", () => {
     await flush();
     expect(api.getPluginSkillDocument).toHaveBeenCalledWith("/p/seo", "audit");
     expect(document.body.textContent).toContain("Checks the site.");
+  });
+
+  it("offers plugins from other computers and installs one with its marketplace", async () => {
+    api.listPlugins.mockResolvedValue([]);
+    api.getPluginsFromOtherDevices.mockResolvedValue([
+      { id: "superpowers@obra", name: "superpowers", marketplace: "obra", marketplace_source: "obra/superpowers-marketplace", devices: ["Desktop"] },
+    ]);
+    api.installPlugin.mockResolvedValue(ok);
+    await render();
+    await flush();
+    expect(document.body.textContent).toContain("plugins.otherDevices.title");
+    expect(document.body.textContent).toContain("superpowers");
+    await act(async () => button("plugins.browse.install").click());
+    await flush();
+    expect(api.installPlugin).toHaveBeenCalledWith("superpowers@obra", undefined, "obra/superpowers-marketplace");
+  });
+
+  it("shows nothing about other computers when there is nothing to offer", async () => {
+    api.listPlugins.mockResolvedValue([plugin()]);
+    await render();
+    expect(document.body.textContent).not.toContain("plugins.otherDevices.title");
   });
 });

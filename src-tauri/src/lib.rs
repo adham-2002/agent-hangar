@@ -1009,6 +1009,7 @@ pub fn run() {
             commands::plugins::get_claude_cli_status,
             commands::plugins::get_plugin_catalog,
             commands::plugins::install_plugin,
+            commands::plugins::get_plugins_from_other_devices,
             commands::plugins::update_plugin,
             commands::plugins::uninstall_plugin,
             commands::plugins::list_marketplaces,

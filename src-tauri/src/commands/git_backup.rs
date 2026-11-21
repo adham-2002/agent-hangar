@@ -1,6 +1,6 @@
 use crate::core::{
     central_repo, error::AppError, git2_engine, git_backup, git_credentials, git_fetcher,
-    github_api, merge, skill_metadata, sync_metadata,
+    github_api, merge, plugin_backup, skill_metadata, sync_metadata,
 };
 use anyhow::Context;
 use std::path::Path;
@@ -116,6 +116,7 @@ pub async fn git_backup_init(store: State<'_, Arc<SkillStore>>) -> Result<(), Ap
     tokio::task::spawn_blocking(move || {
         git_backup::with_repo_lock("git init", || {
             sync_metadata::write_all_from_db_unlocked(&store)?;
+            plugin_backup::write_device_manifest(&store);
             git_backup::init_repo_unlocked(&skills_dir, &effective_device_name(&store))
         })
         .map_err(AppError::git)
@@ -354,6 +355,7 @@ pub async fn git_backup_commit(
         git_backup::with_repo_lock("git commit", || {
             apply_device_identity(&store, &skills_dir);
             sync_metadata::write_all_from_db_unlocked(&store)?;
+            plugin_backup::write_device_manifest(&store);
             git_backup::commit_all_unlocked(&skills_dir, &message)
         })
         .map_err(AppError::git)
@@ -453,6 +455,8 @@ fn run_sync_blocking(
 
     // Local changes first — they must be safe before any network step.
     sync_metadata::write_all_from_db_unlocked(store)?;
+    // The plugin set travels with the backup (core/plugin_backup.rs).
+    plugin_backup::write_device_manifest(store);
     // Rebuild the oversized exclusions BEFORE the dirty check: a previously
     // excluded skill that shrank below the limit re-enters the backup by
     // making .gitignore (and the skill itself) show up as changes.

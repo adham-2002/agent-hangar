@@ -941,8 +941,26 @@ export const getClaudeCliStatus = () => invoke<ClaudeCliStatus>("get_claude_cli_
 
 export const getPluginCatalog = () => invoke<CatalogEntry[]>("get_plugin_catalog");
 
-export const installPlugin = (id: string, acceptCommand?: string) =>
-  invoke<CliOutcome>("install_plugin", { id, acceptCommand: acceptCommand ?? null });
+/** With `marketplaceSource`, the marketplace is added first (a plugin from another computer). */
+export const installPlugin = (id: string, acceptCommand?: string, marketplaceSource?: string) =>
+  invoke<CliOutcome>("install_plugin", {
+    id,
+    acceptCommand: acceptCommand ?? null,
+    marketplaceSource: marketplaceSource ?? null,
+  });
+
+/** A plugin switched on on another of the user's computers, missing here. */
+export interface OfferedPlugin {
+  id: string;
+  name: string;
+  marketplace: string;
+  /** Set when this computer does not know the marketplace; installing adds it. */
+  marketplace_source: string | null;
+  devices: string[];
+}
+
+export const getPluginsFromOtherDevices = () =>
+  invoke<OfferedPlugin[]>("get_plugins_from_other_devices");
 
 export const updatePlugin = (id: string, acceptCommand?: string) =>
   invoke<CliOutcome>("update_plugin", { id, acceptCommand: acceptCommand ?? null });
