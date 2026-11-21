@@ -262,3 +262,34 @@ export function buildSourceGroups(skills: ManagedSkill[]): SkillSourceGroup[] {
     );
   });
 }
+
+/**
+ * Grouping is worth turning on by default once the library holds a pack: one
+ * known source with more than one skill. A library of single skills reads
+ * fine as a flat list, and grouping it would only add a header per skill.
+ */
+export function defaultGroupBySource(groups: SkillSourceGroup[]): boolean {
+  return groups.some((group) => group.kind !== "unknown" && group.count > 1);
+}
+
+/**
+ * The grouping key for a bare git reference (URL, scp form or `owner/repo`), so
+ * something that is not a library skill, such as a Claude Code plugin's source
+ * repo, can be matched against library sources. Null when it is not a repo.
+ */
+export function gitSourceKey(ref: string): string | null {
+  return parseGitRef(ref)?.key ?? null;
+}
+
+/**
+ * Groups holding at least one enabled skill first, the rest after, each part
+ * keeping its order (Array.prototype.sort is stable). Inside a group the
+ * caller's order stands, which already lists enabled skills first.
+ */
+export function enabledGroupsFirst(
+  groups: SkillSourceGroup[],
+  isEnabled: (skill: ManagedSkill) => boolean,
+): SkillSourceGroup[] {
+  const rank = (group: SkillSourceGroup) => (group.skills.some(isEnabled) ? 0 : 1);
+  return [...groups].sort((a, b) => rank(a) - rank(b));
+}

@@ -63,6 +63,8 @@
 - **统一技能库** — 从 Git 仓库、本地目录、`.zip` / `.skill` 文件或 [skills.sh](https://skills.sh) 市场安装技能，统一存放在 `~/.skills-manager`。
 - **技能市场** — 浏览市场上的热门 Skills，用关键词搜索找到需要的那个。
 - **让你的 Agent 管理 Skills** —— Claude Code、Codex、Cursor 等可以替你装一个 skill、部署到另一个 agent、或报告哪个 agent 有什么，走的是驱动 Skills Manager 而不是绕过它直接写 agent 目录——来源、preset、更新追踪和各 agent 的状态都不会丢。Dashboard 上一键完成设置，详见[让你的 Agent 来管理 Skills](#让你的-agent-来管理-skills)。
+- **Claude Code 插件** — 查看这台电脑上的全部 Claude Code 插件及其包含的内容，开启或关闭插件，并从市场安装、更新或卸载插件，无需终端。市场想要运行的命令会先展示给你，只有你批准后才会执行。插件也会作为技能包出现在技能库中；如果同一个技能包同时以插件和 Skill 的形式安装，技能库会给出提示。
+- **技能包** — 同一来源的 Skill 组成一个技能包，有自己的颜色。可以一键为某个 Agent 开启或关闭整个包，或对整个包同步、打标签、更新、删除。
 - **Preset（预设）** — 将技能分组为命名 Preset。在任意工作区点击 Preset 标签，即可一键为当前 Agent 范围激活或停用其全部技能，激活的 Preset 显示 ✓，部分安装显示数量。应用 Preset 是一次性复制，不是实时同步。
 - **全局工作区** — 每个 Agent 都有自己的页面，列出其全局目录里的所有 Skills（包括不是通过 Skills Manager 安装的），始终反映 Agent 实际看到的内容。可按 Agent 添加或移除 Skills，也可通过「全部 Agents」总览跨所有已安装 Agent 统一管理。
 - **项目工作区** — 查看并管理任意项目的本地 Skills 目录，支持与中央库双向同步。支持嵌套 Skill 目录和导出时按 Agent 分配。

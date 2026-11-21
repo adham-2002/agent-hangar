@@ -921,6 +921,7 @@ pub fn run() {
 
             let step = Instant::now();
             core::file_watcher::start_file_watcher(app.handle().clone(), store_for_setup.clone());
+            core::plugin_watcher::start_plugin_watcher(app.handle().clone());
             log::info!(
                 "startup: start_file_watcher done in {} ms",
                 step.elapsed().as_millis()
@@ -1001,6 +1002,19 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             // Tools
+            commands::plugins::list_plugins,
+            commands::plugins::get_plugin_detail,
+            commands::plugins::get_plugin_skill_document,
+            commands::plugins::set_plugin_enabled,
+            commands::plugins::get_claude_cli_status,
+            commands::plugins::get_plugin_catalog,
+            commands::plugins::install_plugin,
+            commands::plugins::update_plugin,
+            commands::plugins::uninstall_plugin,
+            commands::plugins::list_marketplaces,
+            commands::plugins::add_marketplace,
+            commands::plugins::remove_marketplace,
+            commands::plugins::update_marketplaces,
             commands::tools::get_tool_status,
             commands::tools::set_tool_enabled,
             commands::tools::set_all_tools_enabled,

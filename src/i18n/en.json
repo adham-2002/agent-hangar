@@ -8,6 +8,7 @@
     "globalWorkspace": "Global Workspace",
     "lobsterAgents": "Lobster Agents",
     "installSkills": "Install Skills",
+    "plugins": "Plugins",
     "backup": "Backup",
     "presets": "Presets",
     "newPreset": "New Preset",
@@ -476,6 +477,44 @@
       "apply": "Sync {{count}}",
       "noAgents": "No installed and enabled agents.",
       "allSynced": "Every selected skill is already on this agent"
+    },
+    "sourceGroup": {
+      "select": "Select all skills from {{source}}",
+      "actions": "Actions for {{source}}",
+      "agentAdd": "{{agent}}: {{deployed}} of {{total}} installed · click to install all",
+      "agentRemove": "{{agent}}: all {{total}} installed · click to remove all",
+      "packInstalled_one": "Installed {{count}} skill from {{source}} to {{agent}}",
+      "packInstalled_other": "Installed {{count}} skills from {{source}} to {{agent}}",
+      "packRemoved_one": "Removed {{count}} skill of {{source}} from {{agent}}",
+      "packRemoved_other": "Removed {{count}} skills of {{source}} from {{agent}}",
+      "packFailed_one": "{{count}} skill could not be updated on {{agent}}",
+      "packFailed_other": "{{count}} skills could not be updated on {{agent}}"
+    },
+    "pluginPacks": {
+      "title": "Claude Code plugins",
+      "hint": "Packs installed as Claude Code plugins. Claude Code manages their skills; turn a plugin on or off here.",
+      "badge": "Plugin",
+      "alsoInLibrary": "Also in your library",
+      "alsoPlugin": "Also a plugin",
+      "toggle": "Turn {{name}} on or off in Claude Code",
+      "openInPlugins": "Open in Plugins",
+      "noSkills": "This plugin bundles no skills.",
+      "managedByClaude": "Managed by Claude Code. Changes apply to new Claude Code sessions.",
+      "turnedOn": "{{name}} turned on for new Claude Code sessions",
+      "turnedOff": "{{name}} turned off for new Claude Code sessions"
+    },
+    "duplicatePack": {
+      "title": "{{source}} is installed twice for Claude Code: as library skills and as the plugin {{plugin}}",
+      "description_one": "Claude Code loads {{count}} skill twice: {{names}}",
+      "description_other": "Claude Code loads {{count}} skills twice: {{names}}",
+      "disablePlugin": "Turn off plugin",
+      "removeLibrary_one": "Remove {{count}} library skill from Claude Code",
+      "removeLibrary_other": "Remove {{count}} library skills from Claude Code"
+    },
+    "presetEmpty": {
+      "title": "Nothing is enabled in this preset yet",
+      "hint": "Show all skills to pick the ones this preset should enable.",
+      "showAll": "Show all skills"
     }
   },
   "install": {
@@ -1157,5 +1196,103 @@
     "gotIt": "Got it",
     "fullChangelog": "Full changelog",
     "close": "Close"
+  },
+  "plugins": {
+    "title": "Plugins",
+    "subtitle": "Manage the Claude Code plugins installed on this machine.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search plugins",
+    "appliesToNewSessions": "Changes apply to new Claude Code sessions.",
+    "empty": "No plugins installed",
+    "emptyHint": "Plugins you install in Claude Code will appear here.",
+    "noMatch": "No plugins match your search.",
+    "notInstalled": "Not installed",
+    "filesMissing": "Files missing",
+    "filesMissingHint": "This plugin's files are no longer on disk. Reinstall it from Claude Code.",
+    "toggleTitle": "Enable {{name}}",
+    "toggleFailed": "Could not update the plugin",
+    "loadFailed": "Could not load plugins",
+    "skillsCount_one": "{{count}} skill",
+    "skillsCount_other": "{{count}} skills",
+    "commandsCount_one": "{{count}} command",
+    "commandsCount_other": "{{count}} commands",
+    "agentsCount_one": "{{count}} agent",
+    "agentsCount_other": "{{count}} agents",
+    "mcpCount_one": "{{count}} MCP server",
+    "mcpCount_other": "{{count}} MCP servers",
+    "detail": {
+      "skills": "Skills",
+      "commands": "Commands",
+      "agents": "Agents",
+      "mcp": "MCP servers",
+      "hooks": "Includes hooks"
+    },
+    "tabs": {
+      "installed": "Installed",
+      "browse": "Browse",
+      "marketplaces": "Marketplaces"
+    },
+    "browseCta": "Browse plugins",
+    "cli": {
+      "missing": "The claude command was not found",
+      "missingHint": "Installing, updating and removing plugins runs through Claude Code. Install Claude Code with its native installer, then reopen this page. Turning plugins on or off works without it."
+    },
+    "ops": {
+      "menu": "Actions for {{name}}",
+      "update": "Update",
+      "uninstall": "Uninstall",
+      "installLabel": "Install {{name}}",
+      "updateLabel": "Update {{name}}",
+      "installed": "Installed {{name}}",
+      "updated": "Updated {{name}}",
+      "uninstalled": "Uninstalled {{name}}",
+      "failed": "The plugin operation failed",
+      "restartNote": "Applies to new Claude Code sessions.",
+      "uninstallTitle": "Uninstall {{name}}?",
+      "uninstallMessage": "Claude Code removes the plugin and everything it bundles. Its saved data is removed too. You can install it again from Browse.",
+      "commandTitle": "Run a command from the marketplace?",
+      "commandMessage": "{{action}} needs to run the command below, declared by the plugin's marketplace. It runs on this computer as you. Only continue if you trust this marketplace.",
+      "commandRun": "Run it"
+    },
+    "browse": {
+      "searchPlaceholder": "Search all plugins in your marketplaces",
+      "refreshCatalogs": "Refresh catalogs",
+      "catalogsRefreshed": "Marketplace catalogs refreshed",
+      "loading": "Loading the plugin catalog…",
+      "loadFailed": "Could not load the plugin catalog",
+      "noMatch": "No plugins match your search.",
+      "showing": "Showing {{shown}} of {{total}}",
+      "installs_one": "{{count}} install",
+      "installs_other": "{{count}} installs",
+      "installed": "Installed",
+      "install": "Install",
+      "showMore": "Show more"
+    },
+    "markets": {
+      "addPlaceholder": "owner/repo, a git URL or a local path",
+      "addHint": "A marketplace is a catalog of plugins. Its plugins appear under Browse once it is added.",
+      "add": "Add",
+      "addLabel": "Add {{source}}",
+      "added": "Added marketplace {{source}}",
+      "empty": "No marketplaces configured.",
+      "loadFailed": "Could not load marketplaces",
+      "update": "Refresh catalog",
+      "updated": "Refreshed {{name}}",
+      "remove": "Remove",
+      "removed": "Removed marketplace {{name}}",
+      "removeTitle": "Remove marketplace {{name}}?",
+      "removeMessage": "Its catalog disappears from Browse. Claude Code decides what happens to plugins already installed from it."
+    },
+    "syncedBadge": "Managed by claude.ai",
+    "syncedHint": "Synced from your claude.ai account. Change it there; Skills Manager only shows it.",
+    "updates": {
+      "badge": "Update available",
+      "badgeVersion": "Update to {{version}}",
+      "updateNow": "Update now",
+      "hint": "Its marketplace offers a newer version, as of the last catalog refresh. Refresh catalogs in Browse to check again."
+    },
+    "skillSheet": {
+      "from": "From the plugin {{plugin}} · managed by Claude Code"
+    }
   }
 }

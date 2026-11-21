@@ -7,6 +7,12 @@ use crate::core::{
     central_repo, error::AppError, file_manager, log_sanitize, skill_store::SkillStore, skillssh_api,
 };
 
+/// The GitHub repository this build is released from (`owner/repo`). The
+/// version check asks it for the latest release, so a fork that ships its own
+/// builds is never offered someone else's. Keep in sync with `APP_REPO` in
+/// src/lib/appRepo.ts and the updater endpoint in tauri.conf.json.
+const APP_REPO: &str = "adham-2002/skills-manager";
+
 #[derive(serde::Serialize)]
 pub struct AppUpdateInfo {
     pub has_update: bool,
@@ -151,7 +157,7 @@ pub async fn check_app_update(
         let client = skillssh_api::build_http_client(proxy_url.as_deref(), 15);
 
         let resp: serde_json::Value = client
-            .get("https://api.github.com/repos/xingkongliang/skills-manager/releases/latest")
+            .get(format!("https://api.github.com/repos/{APP_REPO}/releases/latest"))
             .send()
             .map_err(|e| AppError::network(format!("Network error: {e}")))?
             .json()
@@ -163,8 +169,8 @@ pub async fn check_app_update(
         let latest_version = tag.strip_prefix('v').unwrap_or(tag).to_string();
         let release_url = resp["html_url"]
             .as_str()
-            .unwrap_or("https://github.com/xingkongliang/skills-manager/releases")
-            .to_string();
+            .map(str::to_string)
+            .unwrap_or_else(|| format!("https://github.com/{APP_REPO}/releases"));
 
         let has_update = version_gt(&latest_version, &current_version);
 

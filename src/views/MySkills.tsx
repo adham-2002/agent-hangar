@@ -20,8 +20,6 @@ import {
   Square,
   GripVertical,
   Circle,
-  ChevronDown,
-  ChevronRight,
   FolderTree,
   Pencil,
   Share2,
@@ -35,7 +33,8 @@ import { toast } from "sonner";
 import { cn } from "../utils";
 import { useApp } from "../context/AppContext";
 import { useSkillViewMode } from "../hooks/useSkillViewMode";
-import { useMultiSelect } from "../hooks/useMultiSelect";
+import { groupSelectionState, useMultiSelect } from "../hooks/useMultiSelect";
+import { assignSourceColors } from "../lib/sourceColor";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TagRenameDialog } from "../components/TagRenameDialog";
 import { SkillDetailPanel } from "../components/SkillDetailPanel";
@@ -45,6 +44,12 @@ import { BatchSyncAgentDialog } from "../components/BatchSyncAgentDialog";
 import { SyncDots } from "../components/SyncDots";
 import { ToggleSwitch } from "../components/ToggleSwitch";
 import { CardActionMenu } from "../components/CardActionMenu";
+import { SourceGroupHeader } from "../components/SourceGroupHeader";
+import { PluginPackSection } from "../components/PluginPackSection";
+import { DuplicatePackBanner } from "../components/DuplicatePackBanner";
+import { usePluginInventory } from "../hooks/usePluginInventory";
+import { CLAUDE_CODE_KEY, findDuplicatePacks, pluginPacks } from "../lib/pluginPacks";
+import { packToggle } from "../lib/packTargets";
 import * as api from "../lib/tauri";
 import { getTagColor, pruneStaleTagFilters, UNTAGGED_FILTER } from "../lib/skillTags";
 import type {
@@ -63,6 +68,8 @@ import { SourcePicker } from "../components/SourcePicker";
 import { TagFilterPills } from "../components/TagFilterPills";
 import {
   buildSourceGroups,
+  defaultGroupBySource,
+  enabledGroupsFirst,
   getSkillSourceInfo,
   sourceCandidates,
 } from "../lib/skillSource";
@@ -165,7 +172,26 @@ export function MySkills() {
     projects,
     refreshProjects,
   } = useApp();
-  const [viewMode, setViewMode, groupBySource, setGroupBySource] = useSkillViewMode();
+  const [viewMode, setViewMode, groupBySourceChoice, setGroupBySource] = useSkillViewMode();
+  const libraryGroups = useMemo(() => buildSourceGroups(skills), [skills]);
+  // Until the user picks, group as soon as the library holds a multi-skill pack.
+  const groupBySource = groupBySourceChoice ?? defaultGroupBySource(libraryGroups);
+  // Claude Code plugins are packs too: listed beside the library's sources, and
+  // checked against them for a pack Claude Code would load twice.
+  const pluginInventory = usePluginInventory();
+  const packs = useMemo(
+    () => pluginPacks(pluginInventory.plugins, pluginInventory.details),
+    [pluginInventory.plugins, pluginInventory.details]
+  );
+  const duplicates = useMemo(() => findDuplicatePacks(libraryGroups, packs), [libraryGroups, packs]);
+  const duplicateGroupKeys = useMemo(() => new Set(duplicates.map((d) => d.groupKey)), [duplicates]);
+  const duplicatePluginIds = useMemo(() => new Set(duplicates.map((d) => d.plugin.id)), [duplicates]);
+  // Plugins and library sources share one palette, and a plugin from a library
+  // repo takes that source's key, so both copies of a pack show the same colour.
+  const sourceColorMap = useMemo(
+    () => assignSourceColors([...libraryGroups.map((g) => g.key), ...packs.map((p) => p.colorKey)]),
+    [libraryGroups, packs]
+  );
   // Grouping is a view preference, so it persists; which groups are open is
   // session state, because a group the user expanded once is not a statement
   // about the next launch.
@@ -174,7 +200,8 @@ export function MySkills() {
   // default would hide the only skill it holds without saving a row.
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
   const [sourceSelection, setSourceSelection] = useState<Set<string>>(new Set());
-  const [filterMode, setFilterMode] = useState<"all" | "enabled" | "available">("all");
+  // A preset opens on what it actually enables; "All" is one click away.
+  const [filterMode, setFilterMode] = useState<"all" | "enabled" | "available">("enabled");
   // Which channel (`source_type`) a skill came through — git, skills.sh, a
   // site, a local install, an import. Distinct from the Source grouping below.
   const [channelFilters, setChannelFilters] = useState<Set<string>>(new Set());
@@ -199,6 +226,7 @@ export function MySkills() {
   const [toolToggles, setToolToggles] = useState<SkillToolToggle[] | null>(null);
   const [togglingToolKey, setTogglingToolKey] = useState<string | null>(null);
   const [togglingTarget, setTogglingTarget] = useState<{ skillId: string; tool: string } | null>(null);
+  const [togglingPack, setTogglingPack] = useState<{ group: string; tool: string } | null>(null);
   const [gitStatus, setGitStatus] = useState<GitBackupStatus | null>(null);
   const [gitRemoteConfig, setGitRemoteConfig] = useState("");
   const [tagEditSkillId, setTagEditSkillId] = useState<string | null>(null);
@@ -295,6 +323,16 @@ export function MySkills() {
     tagFilters.size > 0 ||
     sourceSelection.size > 0 ||
     filterMode !== "all";
+  // The preset opens on "Enabled", so an empty list usually means nothing is
+  // enabled yet rather than a filter hiding skills; that gets its own message.
+  const nothingEnabledYet =
+    !!viewedPreset &&
+    filterMode === "enabled" &&
+    skills.length > 0 &&
+    normalizedQuery === "" &&
+    channelFilters.size === 0 &&
+    tagFilters.size === 0 &&
+    sourceSelection.size === 0;
   const clearFilters = () => {
     setSearch("");
     setChannelFilters(new Set());
@@ -391,13 +429,20 @@ export function MySkills() {
   // survivors alone would read `skills` again instead of `a/skills`.
   const sourceGroups = useMemo(() => {
     if (!groupBySource) return null;
-    if (sourceSelection.size === 0) return preSelectionSourceGroups;
     const labels = new Map(preSelectionSourceGroups.map((group) => [group.key, group.label]));
-    return buildSourceGroups(filtered).map((group) => {
-      const known = labels.get(group.key);
-      return known === undefined ? group : { ...group, label: known };
-    });
-  }, [groupBySource, sourceSelection.size, preSelectionSourceGroups, filtered]);
+    const groups =
+      sourceSelection.size === 0
+        ? preSelectionSourceGroups
+        : buildSourceGroups(filtered).map((group) => {
+            const known = labels.get(group.key);
+            return known === undefined ? group : { ...group, label: known };
+          });
+    // In a preset the flat list puts enabled skills first; grouped, the same
+    // holds one level up: sources with an enabled skill come before the rest.
+    return viewedPreset
+      ? enabledGroupsFirst(groups, (skill) => skill.preset_ids.includes(viewedPreset.id))
+      : groups;
+  }, [groupBySource, sourceSelection.size, preSelectionSourceGroups, filtered, viewedPreset]);
 
   // A search forces every Source open: a query that matched something inside a
   // collapsed group would otherwise look like no match at all.
@@ -417,6 +462,8 @@ export function MySkills() {
     isMultiSelect, setIsMultiSelect,
     selectedIds,
     toggleSelect,
+    toggleSelectMany,
+    selectOnly,
     isAllSelected,
     anyDisabled,
     handleSelectAll,
@@ -452,6 +499,54 @@ export function MySkills() {
     [isMultiSelect, sourceRows, selectedIds]
   );
   const hiddenTexts = hiddenSelectionTexts(t, selectedIds.size, hiddenSelectedCount);
+
+  // One colour and name per source, computed over the whole library rather than
+  // the filtered list, so a source keeps its colour while filters change.
+  const sourceMeta = useMemo(
+    () =>
+      new Map(
+        libraryGroups.map((group) => [
+          group.key,
+          { color: sourceColorMap.get(group.key) ?? null, label: group.label },
+        ])
+      ),
+    [libraryGroups, sourceColorMap]
+  );
+  const skillSourceMeta = (skill: ManagedSkill) =>
+    sourceMeta.get(getSkillSourceInfo(skill).key) ?? { color: null, label: null };
+
+  /** Point the selection at one source's skills, so a bulk action covers exactly that pack. */
+  const selectSourceGroup = (ids: string[]) => {
+    setIsMultiSelect(true);
+    selectOnly(ids);
+  };
+
+  // Plugins are not in presets and carry no tags or channels, so any of those
+  // filters hides them rather than showing packs the filter cannot apply to.
+  const showPluginPacks =
+    !viewedPreset && tagFilters.size === 0 && channelFilters.size === 0 && sourceSelection.size === 0;
+  const visiblePacks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return packs;
+    return packs.filter(({ plugin, detail }) =>
+      [plugin.name, plugin.marketplace, ...(detail?.skills ?? [])].some((v) => v.toLowerCase().includes(q))
+    );
+  }, [packs, search]);
+
+  const handleTogglePluginPack = async (plugin: api.PluginInfo) => {
+    const next = !plugin.enabled;
+    if (await pluginInventory.setEnabled(plugin, next)) {
+      toast.success(
+        t(next ? "mySkills.pluginPacks.turnedOn" : "mySkills.pluginPacks.turnedOff", { name: plugin.name })
+      );
+    }
+  };
+
+  const handleDisableDuplicatePlugin = async (plugin: api.PluginInfo) => {
+    if (await pluginInventory.setEnabled(plugin, false)) {
+      toast.success(t("mySkills.pluginPacks.turnedOff", { name: plugin.name }));
+    }
+  };
 
   const selectedSkill = useMemo(
     () => skills.find((skill) => skill.id === detailSkillId) || null,
@@ -598,6 +693,61 @@ export function MySkills() {
       await refreshManagedSkills();
     } finally {
       setTogglingToolKey(null);
+    }
+  };
+
+  /**
+   * Turn a whole pack on or off for one agent, through the same calls a card's
+   * agent dot makes, one skill at a time so one failure does not stop the rest.
+   */
+  const handleTogglePackTarget = async (
+    groupKey: string,
+    sourceLabel: string,
+    groupSkills: ManagedSkill[],
+    toolKey: string,
+  ) => {
+    const { enable, skills: targets } = packToggle(groupSkills, toolKey);
+    await runPackTargets(groupKey, sourceLabel, targets, toolKey, enable);
+  };
+
+  /** Deploy or remove exactly `targets` on one agent, reporting one summary. */
+  const runPackTargets = async (
+    groupKey: string,
+    sourceLabel: string,
+    targets: ManagedSkill[],
+    toolKey: string,
+    enable: boolean,
+  ) => {
+    if (togglingPack || togglingTarget || targets.length === 0) return;
+    setTogglingPack({ group: groupKey, tool: toolKey });
+    const agent = getToolDisplayName(toolKey, tools);
+    let done = 0;
+    let failed = 0;
+    try {
+      for (const skill of targets) {
+        try {
+          if (enable) await api.syncSkillToTool(skill.id, toolKey);
+          else await api.unsyncSkillFromTool(skill.id, toolKey);
+          done++;
+        } catch {
+          failed++;
+        }
+      }
+      if (done > 0) {
+        toast.success(
+          t(enable ? "mySkills.sourceGroup.packInstalled" : "mySkills.sourceGroup.packRemoved", {
+            count: done,
+            source: sourceLabel,
+            agent,
+          })
+        );
+      }
+      if (failed > 0) {
+        toast.error(t("mySkills.sourceGroup.packFailed", { count: failed, agent }));
+      }
+    } finally {
+      await Promise.all([refreshManagedSkills(), refreshTools()]);
+      setTogglingPack(null);
     }
   };
 
@@ -784,8 +934,9 @@ export function MySkills() {
     await Promise.all([refreshManagedSkills(), refreshTools()]);
   };
 
-  const handleBatchRefresh = async () => {
-    const refreshableSkills = skills.filter((skill) => selectedIds.has(skill.id) && canRefresh(skill));
+  const handleBatchRefresh = async (ids?: string[]) => {
+    const targetIds = ids ? new Set(ids) : selectedIds;
+    const refreshableSkills = skills.filter((skill) => targetIds.has(skill.id) && canRefresh(skill));
     if (refreshableSkills.length === 0) return;
 
     setBatchUpdating(true);
@@ -1416,7 +1567,7 @@ export function MySkills() {
                   label: t("mySkills.batchUpdate", { count: refreshableSelectedCount }),
                   icon: <RotateCcw className="h-3.5 w-3.5" />,
                   busy: batchUpdating,
-                  onSelect: handleBatchRefresh,
+                  onSelect: () => void handleBatchRefresh(),
                 }]
               : []),
             {
@@ -1441,17 +1592,56 @@ export function MySkills() {
         />
       )}
 
+      {duplicates.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {duplicates.map((dup) => (
+            <DuplicatePackBanner
+              key={dup.plugin.id}
+              duplicate={dup}
+              busy={
+                togglingPack?.group === dup.groupKey ||
+                pluginInventory.pending.has(dup.plugin.id)
+              }
+              onDisablePlugin={() => void handleDisableDuplicatePlugin(dup.plugin)}
+              onRemoveLibraryCopies={() =>
+                void runPackTargets(
+                  dup.groupKey,
+                  dup.groupLabel ?? dup.plugin.name,
+                  dup.skills,
+                  CLAUDE_CODE_KEY,
+                  false
+                )
+              }
+            />
+          ))}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center pb-20 text-center">
           <Layers className="mb-4 h-12 w-12 text-faint" />
-          <h3 className="mb-1.5 text-[14px] font-semibold text-tertiary">{t("mySkills.noSkills")}</h3>
-          <p className="text-[13px] text-muted">
-            {skills.length === 0 ? t("mySkills.addFirst") : t("mySkills.noMatch")}
-          </p>
-          {hasActiveFilters && (
-            <button onClick={clearFilters} className="app-button-secondary mt-4">
-              {t("mySkills.clearFilters")}
-            </button>
+          {nothingEnabledYet ? (
+            <>
+              <h3 className="mb-1.5 text-[14px] font-semibold text-tertiary">
+                {t("mySkills.presetEmpty.title")}
+              </h3>
+              <p className="text-[13px] text-muted">{t("mySkills.presetEmpty.hint")}</p>
+              <button onClick={() => setFilterMode("all")} className="app-button-secondary mt-4">
+                {t("mySkills.presetEmpty.showAll")}
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="mb-1.5 text-[14px] font-semibold text-tertiary">{t("mySkills.noSkills")}</h3>
+              <p className="text-[13px] text-muted">
+                {skills.length === 0 ? t("mySkills.addFirst") : t("mySkills.noMatch")}
+              </p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="app-button-secondary mt-4">
+                  {t("mySkills.clearFilters")}
+                </button>
+              )}
+            </>
           )}
         </div>
       ) : (
@@ -1471,46 +1661,78 @@ export function MySkills() {
           {sourceRows.map((row) => {
             if (row.kind === "group") {
               const label = row.group.label || t("mySkills.sourcePicker.unknownSource");
-              const header = (
-                <>
-                  {row.expanded ? (
-                    <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                  )}
-                  <span className="truncate">{label}</span>
-                  <span className="shrink-0 text-[11px] font-medium text-faint">
-                    {row.group.count}
-                  </span>
-                </>
-              );
-              const layout = cn(
-                "flex items-center gap-1.5 rounded-md px-1 py-1.5 text-left text-[12px] font-semibold text-muted",
-                viewMode === "grid" && "col-span-full"
-              );
-
-              // A search forces every source open, so folding is not available
-              // and a toggle would be a button that cannot do anything. It is a
-              // plain row until the query is cleared.
-              if (!row.collapsible) {
-                return (
-                  <div key={`group-${row.group.key}`} className={layout}>
-                    {header}
-                  </div>
-                );
-              }
+              const groupIds = row.group.skills.map((s) => s.id);
+              const color = sourceMeta.get(row.group.key)?.color ?? null;
+              const selection = isMultiSelect
+                ? groupSelectionState(selectedIds, groupIds)
+                : "none";
+              const refreshableInGroup = row.group.skills.filter(canRefresh).map((s) => s.id);
 
               return (
-                <button
+                <SourceGroupHeader
                   key={`group-${row.group.key}`}
-                  onClick={() =>
+                  label={label}
+                  count={row.group.count}
+                  skills={row.group.skills}
+                  color={color}
+                  collapsible={row.collapsible}
+                  expanded={row.expanded}
+                  onToggleOpen={() =>
                     setGroupOpen((prev) => ({ ...prev, [row.group.key]: !row.expanded }))
                   }
-                  aria-expanded={row.expanded}
-                  className={cn(layout, "transition-colors hover:bg-surface-hover hover:text-secondary")}
-                >
-                  {header}
-                </button>
+                  fullWidth={viewMode === "grid"}
+                  alsoPlugin={duplicateGroupKeys.has(row.group.key)}
+                  selection={selection}
+                  onToggleSelect={() => {
+                    if (!isMultiSelect) setIsMultiSelect(true);
+                    toggleSelectMany(groupIds);
+                  }}
+                  tools={tools}
+                  onTogglePackAgent={(toolKey) =>
+                    void handleTogglePackTarget(row.group.key, label, row.group.skills, toolKey)
+                  }
+                  pendingAgentKey={togglingPack?.group === row.group.key ? togglingPack.tool : null}
+                  agentsDisabled={!!togglingPack || !!togglingTarget}
+                  actions={[
+                    {
+                      key: "sync",
+                      label: t("mySkills.batchSyncAgents", { count: groupIds.length }),
+                      icon: <Share2 className="h-3.5 w-3.5" />,
+                      onSelect: () => {
+                        selectSourceGroup(groupIds);
+                        setBatchSyncDialogOpen(true);
+                      },
+                    },
+                    {
+                      key: "tags",
+                      label: t("mySkills.batchEditTags", { count: groupIds.length }),
+                      icon: <Tag className="h-3.5 w-3.5" />,
+                      onSelect: () => {
+                        selectSourceGroup(groupIds);
+                        setBatchTagDialogOpen(true);
+                      },
+                    },
+                    ...(refreshableInGroup.length > 0
+                      ? [{
+                          key: "update",
+                          label: t("mySkills.batchUpdate", { count: refreshableInGroup.length }),
+                          icon: <RotateCcw className="h-3.5 w-3.5" />,
+                          disabled: batchUpdating,
+                          onSelect: () => void handleBatchRefresh(refreshableInGroup),
+                        }]
+                      : []),
+                    {
+                      key: "delete",
+                      danger: true,
+                      label: t("mySkills.deleteSelected", { count: groupIds.length }),
+                      icon: <Trash2 className="h-3.5 w-3.5" />,
+                      onSelect: () => {
+                        selectSourceGroup(groupIds);
+                        setBatchDeleteConfirm(true);
+                      },
+                    },
+                  ]}
+                />
               );
             }
 
@@ -1528,6 +1750,7 @@ export function MySkills() {
               skill.update_status === "source_missing"
               && (skill.source_type === "local" || skill.source_type === "import");
             const displayName = skillDisplayNames.get(skill.id) || skill.name;
+            const { color: sourceColor, label: sourceLabel } = skillSourceMeta(skill);
 
             if (viewMode === "grid") {
               return (
@@ -1553,6 +1776,13 @@ export function MySkills() {
                     isMultiSelect ? toggleSelect(skill.id) : openSkillDetailById(skill.id)
                   }
                 >
+                  {sourceColor && (
+                    <span
+                      aria-hidden
+                      title={sourceLabel ?? undefined}
+                      className={cn("absolute top-3 bottom-3 left-0 w-[3px] rounded-full", sourceColor)}
+                    />
+                  )}
                   {deletingIds.has(skill.id) && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-surface/70 backdrop-blur-[1px]">
                       <Loader2 className="h-5 w-5 animate-spin text-muted" />
@@ -1763,9 +1993,16 @@ export function MySkills() {
 
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-faint px-3.5 py-2.5">
                     <div className="flex min-w-0 items-center gap-1.5">
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] text-muted">
-                        {sourceIcon(skill.source_type)}
-                        {sourceTypeLabel(skill)}
+                      <span
+                        className="inline-flex min-w-0 items-center gap-1 text-[12px] text-muted"
+                        title={sourceLabel ? `${sourceTypeLabel(skill)} · ${sourceLabel}` : undefined}
+                      >
+                        {sourceColor ? (
+                          <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", sourceColor)} />
+                        ) : (
+                          sourceIcon(skill.source_type)
+                        )}
+                        <span className="truncate">{sourceLabel ?? sourceTypeLabel(skill)}</span>
                       </span>
                       {enabledInPreset && (
                         <>
@@ -1814,6 +2051,13 @@ export function MySkills() {
                   isMultiSelect ? toggleSelect(skill.id) : openSkillDetailById(skill.id)
                 }
               >
+                {sourceColor && (
+                  <span
+                    aria-hidden
+                    title={sourceLabel ?? undefined}
+                    className={cn("absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full", sourceColor)}
+                  />
+                )}
                 {deletingIds.has(skill.id) && (
                   <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-surface/70 backdrop-blur-[1px]">
                     <Loader2 className="h-5 w-5 animate-spin text-muted" />
@@ -1909,9 +2153,16 @@ export function MySkills() {
                     }
                     pendingKey={togglingTarget?.skillId === skill.id ? togglingTarget.tool : null}
                   />
-                  <span className="inline-flex items-center gap-1 text-[13px] text-muted">
-                    {sourceIcon(skill.source_type)}
-                    {sourceTypeLabel(skill)}
+                  <span
+                    className="inline-flex min-w-0 items-center gap-1 text-[13px] text-muted"
+                    title={sourceLabel ? `${sourceTypeLabel(skill)} · ${sourceLabel}` : undefined}
+                  >
+                    {sourceColor ? (
+                      <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", sourceColor)} />
+                    ) : (
+                      sourceIcon(skill.source_type)
+                    )}
+                    <span className="truncate">{sourceLabel ?? sourceTypeLabel(skill)}</span>
                   </span>
                   {enabledInPreset && (
                     <span className="text-[13px] font-medium text-amber-600 dark:text-amber-400/80">
@@ -1992,6 +2243,17 @@ export function MySkills() {
         </div>
           </SortableContext>
         </DndContext>
+      )}
+
+      {showPluginPacks && (
+        <PluginPackSection
+          packs={visiblePacks}
+          colors={sourceColorMap}
+          duplicateIds={duplicatePluginIds}
+          pending={pluginInventory.pending}
+          onToggle={(plugin) => void handleTogglePluginPack(plugin)}
+          onOpenPlugins={() => navigate("/plugins")}
+        />
       )}
 
       <SkillDetailPanel

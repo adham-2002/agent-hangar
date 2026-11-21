@@ -8,6 +8,7 @@
     "globalWorkspace": "全局工作区",
     "lobsterAgents": "龙虾 Agent",
     "installSkills": "安装 Skills",
+    "plugins": "插件",
     "backup": "备份",
     "presets": "Preset",
     "newPreset": "新建 Preset",
@@ -476,6 +477,39 @@
       "apply": "同步 {{count}} 项",
       "noAgents": "没有已安装并启用的 Agent。",
       "allSynced": "选中的 Skill 都已同步到这个 Agent"
+    },
+    "sourceGroup": {
+      "select": "选择来自 {{source}} 的全部 Skill",
+      "actions": "{{source}} 的操作",
+      "agentAdd": "{{agent}}：已安装 {{deployed}}/{{total}} · 点击全部安装",
+      "agentRemove": "{{agent}}：已全部安装 {{total}} 个 · 点击全部移除",
+      "packInstalled_other": "已将 {{source}} 的 {{count}} 个 Skill 安装到 {{agent}}",
+      "packRemoved_other": "已从 {{agent}} 移除 {{source}} 的 {{count}} 个 Skill",
+      "packFailed_other": "{{count}} 个 Skill 未能在 {{agent}} 上更新"
+    },
+    "pluginPacks": {
+      "title": "Claude Code 插件",
+      "hint": "以 Claude Code 插件方式安装的技能包。其中的 Skill 由 Claude Code 管理，可在此开启或关闭插件。",
+      "badge": "插件",
+      "alsoInLibrary": "库中也有",
+      "alsoPlugin": "也是插件",
+      "toggle": "在 Claude Code 中开启或关闭 {{name}}",
+      "openInPlugins": "在插件页打开",
+      "noSkills": "此插件不包含 Skill。",
+      "managedByClaude": "由 Claude Code 管理，更改将在新的 Claude Code 会话中生效。",
+      "turnedOn": "已为新的 Claude Code 会话开启 {{name}}",
+      "turnedOff": "已为新的 Claude Code 会话关闭 {{name}}"
+    },
+    "duplicatePack": {
+      "title": "{{source}} 在 Claude Code 中安装了两次：库中的 Skill 和插件 {{plugin}}",
+      "description_other": "Claude Code 会重复加载 {{count}} 个 Skill：{{names}}",
+      "disablePlugin": "关闭插件",
+      "removeLibrary_other": "从 Claude Code 移除 {{count}} 个库中 Skill"
+    },
+    "presetEmpty": {
+      "title": "此 Preset 还没有启用任何 Skill",
+      "hint": "显示全部 Skill，选择此 Preset 要启用的 Skill。",
+      "showAll": "显示全部 Skill"
     }
   },
   "install": {
@@ -1157,5 +1191,98 @@
     "gotIt": "知道了",
     "fullChangelog": "查看完整更新日志",
     "close": "关闭"
+  },
+  "plugins": {
+    "title": "插件",
+    "subtitle": "管理本机已安装的 Claude Code 插件。",
+    "refresh": "刷新",
+    "searchPlaceholder": "搜索插件",
+    "appliesToNewSessions": "更改将在新的 Claude Code 会话中生效。",
+    "empty": "尚未安装插件",
+    "emptyHint": "你在 Claude Code 中安装的插件会显示在这里。",
+    "noMatch": "没有匹配的插件。",
+    "notInstalled": "未安装",
+    "filesMissing": "文件缺失",
+    "filesMissingHint": "此插件的文件已不在磁盘上，请在 Claude Code 中重新安装。",
+    "toggleTitle": "启用 {{name}}",
+    "toggleFailed": "无法更新插件",
+    "loadFailed": "无法加载插件",
+    "skillsCount_other": "{{count}} 个技能",
+    "commandsCount_other": "{{count}} 个命令",
+    "agentsCount_other": "{{count}} 个代理",
+    "mcpCount_other": "{{count}} 个 MCP 服务器",
+    "detail": {
+      "skills": "技能",
+      "commands": "命令",
+      "agents": "代理",
+      "mcp": "MCP 服务器",
+      "hooks": "包含钩子"
+    },
+    "tabs": {
+      "installed": "已安装",
+      "browse": "浏览",
+      "marketplaces": "市场"
+    },
+    "browseCta": "浏览插件",
+    "cli": {
+      "missing": "未找到 claude 命令",
+      "missingHint": "安装、更新和卸载插件需要通过 Claude Code 完成。请使用官方安装程序安装 Claude Code 后重新打开此页面。开启或关闭插件不需要它。"
+    },
+    "ops": {
+      "menu": "{{name}} 的操作",
+      "update": "更新",
+      "uninstall": "卸载",
+      "installLabel": "安装 {{name}}",
+      "updateLabel": "更新 {{name}}",
+      "installed": "已安装 {{name}}",
+      "updated": "已更新 {{name}}",
+      "uninstalled": "已卸载 {{name}}",
+      "failed": "插件操作失败",
+      "restartNote": "将在新的 Claude Code 会话中生效。",
+      "uninstallTitle": "卸载 {{name}}？",
+      "uninstallMessage": "Claude Code 会移除此插件及其包含的全部内容，保存的数据也会一并删除。之后可以在“浏览”中重新安装。",
+      "commandTitle": "运行市场提供的命令？",
+      "commandMessage": "{{action}} 需要运行下方由插件市场声明的命令。它将以你的身份在这台电脑上运行。仅在你信任此市场时继续。",
+      "commandRun": "运行"
+    },
+    "browse": {
+      "searchPlaceholder": "搜索市场中的全部插件",
+      "refreshCatalogs": "刷新目录",
+      "catalogsRefreshed": "市场目录已刷新",
+      "loading": "正在加载插件目录…",
+      "loadFailed": "无法加载插件目录",
+      "noMatch": "没有匹配的插件。",
+      "showing": "显示 {{shown}} / {{total}}",
+      "installs_other": "{{count}} 次安装",
+      "installed": "已安装",
+      "install": "安装",
+      "showMore": "显示更多"
+    },
+    "markets": {
+      "addPlaceholder": "owner/repo、git 地址或本地路径",
+      "addHint": "市场是插件目录。添加后，其中的插件会显示在“浏览”中。",
+      "add": "添加",
+      "addLabel": "添加 {{source}}",
+      "added": "已添加市场 {{source}}",
+      "empty": "尚未配置市场。",
+      "loadFailed": "无法加载市场",
+      "update": "刷新目录",
+      "updated": "已刷新 {{name}}",
+      "remove": "移除",
+      "removed": "已移除市场 {{name}}",
+      "removeTitle": "移除市场 {{name}}？",
+      "removeMessage": "其目录将从“浏览”中消失。已从中安装的插件如何处理由 Claude Code 决定。"
+    },
+    "syncedBadge": "由 claude.ai 管理",
+    "syncedHint": "从你的 claude.ai 账户同步。请在那里修改；Skills Manager 只负责显示。",
+    "updates": {
+      "badge": "有可用更新",
+      "badgeVersion": "可更新至 {{version}}",
+      "updateNow": "立即更新",
+      "hint": "根据最近一次目录刷新，其市场提供了更新的版本。可在“浏览”中刷新目录再次检查。"
+    },
+    "skillSheet": {
+      "from": "来自插件 {{plugin}} · 由 Claude Code 管理"
+    }
   }
 }

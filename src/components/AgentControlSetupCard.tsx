@@ -6,14 +6,14 @@ import { useApp } from "../context/AppContext";
 import { getErrorMessage } from "../lib/error";
 import * as api from "../lib/tauri";
 import { AgentIcon } from "./AgentIcon";
+import { APP_REPO_URL } from "../lib/appRepo";
 
 /** Dismissal flag, same shape as the backup first-run prompt. */
 const PROMPT_SETTING_KEY = "agent_control_setup_prompt";
 
 /** The library skill that teaches an agent to drive Skills Manager. */
 const SKILL_NAME = "manage-skills";
-const SKILL_SOURCE =
-  "https://github.com/xingkongliang/skills-manager/tree/main/skills/manage-skills";
+const SKILL_SOURCE = `${APP_REPO_URL}/tree/main/skills/manage-skills`;
 
 /**
  * One-time pointer to a capability nothing else advertises: an agent can drive

@@ -1,6 +1,6 @@
 ---
 name: manage-skills
-description: Manage the user's shared agent-skill library via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, and adopt existing skills. Use this whenever the user wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Prefer this over direct agent-folder installs because Skills Manager preserves source metadata, preset membership, updates, and cross-agent deployment state.
+description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Prefer this over direct agent-folder installs because Skills Manager preserves source metadata, preset membership, updates, and cross-agent deployment state.
 ---
 
 ## Before doing anything
@@ -341,6 +341,36 @@ A project must be registered before any project command touches it. `<project>` 
 - If a project path no longer exists (`path_exists: false`), `deploy`, `undeploy` and `import` are refused. Ask the user whether it moved; do not `projects add` a new path on their behalf. `projects remove` still works to unregister it.
 - Project commands cannot be combined with `--skills-root`.
 
+## Plugins (Claude Code)
+
+Claude Code plugins bundle skills, commands, agents, hooks and MCP servers. They exist only for Claude Code. Use these commands instead of running `claude plugin` yourself, so the user's activity log records the change and the desktop app shows it.
+
+```bash
+"$SM" --json plugins list                        # installed: id, scope, enabled
+"$SM" --json plugins show superpowers            # what one plugin bundles
+"$SM" --json plugins search "code review" --limit 10
+"$SM" plugins disable superpowers --dry-run
+"$SM" plugins disable superpowers                # applies to new Claude Code sessions
+"$SM" plugins enable superpowers
+
+"$SM" plugins install code-review@claude-plugins-official --dry-run
+"$SM" --json plugins install code-review@claude-plugins-official
+"$SM" --json plugins update superpowers@claude-plugins-official
+"$SM" plugins uninstall superpowers@claude-plugins-official --scope user
+
+"$SM" --json plugins marketplaces list
+"$SM" plugins marketplaces add obra/superpowers-marketplace
+"$SM" plugins marketplaces update                # refresh every catalog
+"$SM" plugins marketplaces remove <name>
+```
+
+- **A marketplace can declare a command it runs to install a plugin. Never approve it yourself.** When that happens, `install` or `update` prints `{"ok": false, "needs_approval": true, "command": "…", "sha256": "…"}` and exits with code **3**. Nothing has run. Show the user the exact `command`, say that it runs on their computer as them, and ask. Only if they approve, run the same command again with `--accept-command <sha256>`. Do not pass `-y` or try another route around this.
+- `install` takes `name@marketplace`. If the user names a plugin without a marketplace, `search` first and confirm which one they mean when more than one matches.
+- Plugins with scope `synced` come from the user's claude.ai account. Do not enable, disable, update or uninstall them; tell the user to change them in claude.ai.
+- `enable`, `disable`, `install`, `update` and `uninstall` all take effect in **new** Claude Code sessions. Say so; the current session keeps the plugins it started with.
+- `enable` and `disable` work without the `claude` command. Everything else needs it; if the error says it was not found, tell the user to install Claude Code with its native installer.
+- If the same pack is installed both as a plugin and as library skills deployed to Claude Code, Claude Code loads those skills twice. Point it out and let the user choose: `plugins disable <id>`, or `skills undeploy <skill>... --agent claude_code`.
+
 ## Health check
 
 When sync misbehaves or a command errors in a confusing way:
@@ -400,6 +430,15 @@ The `preset_ids`, `presets`, `deployed_to`, `tags`, and `source_type` fields are
 ```
 
 Report which skills actually refreshed (`refreshed: true` in the JSON) vs which were already up-to-date.
+
+### "Install the X plugin" / "Give Claude Code plugin X"
+
+```bash
+"$SM" --json plugins search X --limit 5          # find the exact name@marketplace
+"$SM" --json plugins install <name>@<marketplace>
+```
+
+If it exits with code 3, follow the approval rule under **Plugins** before anything else. Report that the plugin is active in new Claude Code sessions.
 
 ## Pitfalls
 

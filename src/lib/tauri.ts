@@ -863,3 +863,109 @@ export const updateGlobalLocalSkillFromCenter = (agent: string, skillRelativePat
 
 export const deleteGlobalLocalSkill = (agent: string, skillRelativePath: string) =>
   invoke<void>("delete_global_local_skill", { agent, skillRelativePath });
+
+// ── Plugins ──
+
+export interface PluginInfo {
+  id: string;
+  name: string;
+  marketplace: string;
+  version: string | null;
+  scope: string;
+  enabled: boolean;
+  install_path: string | null;
+  installed: boolean;
+  files_present: boolean;
+  source_repo: string | null;
+  /** The newest version its marketplace offers, when it states one. */
+  latest_version: string | null;
+  /** Newer than installed, as of the last marketplace catalog refresh. */
+  update_available: boolean;
+}
+
+export interface PluginDetail {
+  description: string | null;
+  author: string | null;
+  skills: string[];
+  commands: string[];
+  agents: string[];
+  hooks: boolean;
+  mcp_servers: string[];
+}
+
+export const listPlugins = () => invoke<PluginInfo[]>("list_plugins");
+
+export const getPluginDetail = (installPath: string) =>
+  invoke<PluginDetail>("get_plugin_detail", { installPath });
+
+export const setPluginEnabled = (id: string, enabled: boolean) =>
+  invoke<void>("set_plugin_enabled", { id, enabled });
+
+// ── Plugins: the claude CLI (install, update, remove, marketplaces) ──
+
+export interface ClaudeCliStatus {
+  available: boolean;
+  path: string | null;
+}
+
+/** A command a marketplace wants to run; it runs only after the user approves it. */
+export interface ShownCommand {
+  text: string;
+  sha256: string;
+}
+
+export interface CliOutcome {
+  ok: boolean;
+  outcome: string | null;
+  message: string | null;
+  failure_code: string | null;
+  shown_command: ShownCommand | null;
+}
+
+export interface CatalogEntry {
+  plugin_id: string;
+  name: string;
+  description: string | null;
+  marketplace: string;
+  install_count: number | null;
+  installed: boolean;
+}
+
+export interface MarketplaceInfo {
+  name: string;
+  kind: string | null;
+  location: string | null;
+}
+
+export const getClaudeCliStatus = () => invoke<ClaudeCliStatus>("get_claude_cli_status");
+
+export const getPluginCatalog = () => invoke<CatalogEntry[]>("get_plugin_catalog");
+
+export const installPlugin = (id: string, acceptCommand?: string) =>
+  invoke<CliOutcome>("install_plugin", { id, acceptCommand: acceptCommand ?? null });
+
+export const updatePlugin = (id: string, acceptCommand?: string) =>
+  invoke<CliOutcome>("update_plugin", { id, acceptCommand: acceptCommand ?? null });
+
+export const uninstallPlugin = (id: string, scope: string) =>
+  invoke<CliOutcome>("uninstall_plugin", { id, scope });
+
+export const listMarketplaces = () => invoke<MarketplaceInfo[]>("list_marketplaces");
+
+export const addMarketplace = (source: string) =>
+  invoke<CliOutcome>("add_marketplace", { source });
+
+export const removeMarketplace = (name: string) =>
+  invoke<CliOutcome>("remove_marketplace", { name });
+
+export const updateMarketplaces = (name?: string) =>
+  invoke<CliOutcome>("update_marketplaces", { name: name ?? null });
+
+export interface PluginSkillDocument {
+  filename: string;
+  content: string;
+}
+
+/** A bundled skill's SKILL.md, read from inside the plugin's folder. */
+export const getPluginSkillDocument = (installPath: string, skill: string) =>
+  invoke<PluginSkillDocument>("get_plugin_skill_document", { installPath, skill });
