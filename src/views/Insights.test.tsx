@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({
   addProject: vi.fn(),
   exportSkillToProject: vi.fn(),
   getAgentMemory: vi.fn(),
+  checkPresetQuality: vi.fn(),
 }));
 const app = vi.hoisted(() => ({
   refreshManagedSkills: vi.fn(),
@@ -29,6 +30,7 @@ const app = vi.hoisted(() => ({
   skills: [] as unknown[],
   tools: [] as unknown[],
   projects: [] as unknown[],
+  presets: [] as unknown[],
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
@@ -49,6 +51,7 @@ vi.mock("../context/AppContext", () => ({
     refreshManagedSkills: app.refreshManagedSkills,
     projects: app.projects,
     refreshProjects: app.refreshProjects,
+    presets: app.presets,
   }),
 }));
 
@@ -104,6 +107,8 @@ beforeEach(() => {
   api.exportSkillToProject.mockResolvedValue(undefined);
   app.projects = [];
   api.getAgentMemory.mockResolvedValue({ global: [], global_always_on: 0, projects: [] });
+  api.checkPresetQuality.mockResolvedValue([]);
+  app.presets = [];
 });
 afterEach(() => cleanup());
 
@@ -205,6 +210,31 @@ describe("Insights", () => {
     expect(section.textContent).not.toContain("quality.codes.description_no_when");
     await act(async () => button("insights.quality.tips").click());
     expect(section.textContent).toContain("quality.codes.description_no_when");
+  });
+
+  it("shows each preset's budget and the clashes between its skills", async () => {
+    app.presets = [{ id: "p1", name: "Frontend", sort_order: 0 }];
+    app.skills = [
+      { ...(skill("used") as object), preset_ids: ["p1"] },
+      { ...(skill("idle") as object), preset_ids: ["p1"] },
+    ];
+    api.checkPresetQuality.mockResolvedValue([
+      {
+        preset_id: "p1",
+        skills: [
+          {
+            skill_id: "idle",
+            findings: [{ code: "description_overlap", severity: "warning", message: "m", params: {} }],
+          },
+        ],
+      },
+    ]);
+    const c = await render();
+    const section = c.querySelector('[aria-label="insights.presets.title"]')!;
+    expect(section.textContent).toContain("Frontend");
+    expect(section.textContent).toContain("insights.budget.total:200");
+    await act(async () => (section.querySelector("button[aria-expanded]") as HTMLButtonElement).click());
+    expect(section.textContent).toContain("quality.codes.description_overlap");
   });
 
   it("does not call anything unused while the sessions cover too little time", async () => {

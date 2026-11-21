@@ -1374,7 +1374,26 @@
       "edit": "Edit"
     },
     "memoryNote": "Claude Code also loads your instructions and memory: {{global}} from the global CLAUDE.md in every session, and up to {{project}} more in a project.",
-    "memoryLink": "Review memory"
+    "memoryLink": "Review memory",
+    "presets": {
+      "title": "Presets",
+      "hint": "What each preset adds to every session when you apply it, and whether its skills get in each other's way: two skills with the same name, or descriptions so alike the agent may pick the wrong one.",
+      "empty": "You have no presets yet.",
+      "skills_one": "{{count}} skill",
+      "skills_other": "{{count}} skills",
+      "clashes_one": "{{count}} skill clashes with another in this preset",
+      "clashes_other": "{{count}} skills clash with others in this preset",
+      "problems_one": "{{count}} skill has problems of its own",
+      "problems_other": "{{count}} skills have problems of their own",
+      "summary": "Applying this preset adds about {{tokens}} tokens to every session; the largest skill adds {{heaviest}} more when it is used.",
+      "unused_one": "{{count}} of its skills was not used in the last 30 days.",
+      "unused_other": "{{count}} of its skills were not used in the last 30 days.",
+      "together": "Working together",
+      "fitTogether": "No clashes: an agent can tell these skills apart.",
+      "open": "Open preset",
+      "strip": "≈{{tokens}} tokens every session",
+      "details": "Details"
+    }
   },
   "authoring": {
     "newSkill": "New skill",

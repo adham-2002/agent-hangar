@@ -92,7 +92,7 @@ pub(crate) fn split_frontmatter(content: &str) -> Option<(&str, &str)> {
 }
 
 /// What [`check_content`] read, for checks across skills.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Checked {
     pub findings: Vec<Finding>,
     pub name: Option<String>,
@@ -397,6 +397,7 @@ pub fn check_dir(dir: &Path) -> Checked {
 }
 
 /// One library skill to check.
+#[derive(Debug, Clone, Copy)]
 pub struct LibrarySkill<'a> {
     pub id: &'a str,
     pub name: &'a str,
@@ -409,7 +410,22 @@ pub struct LibrarySkill<'a> {
 pub fn check_library(skills: &[LibrarySkill]) -> BTreeMap<String, Vec<Finding>> {
     let checked: Vec<Checked> = skills.iter().map(|s| check_dir(s.dir)).collect();
     let mut out: BTreeMap<String, Vec<Finding>> = BTreeMap::new();
+    let cross = cross_findings(skills, &checked);
+    for ((skill, c), extra) in skills.iter().zip(checked).zip(cross) {
+        let mut findings = c.findings;
+        findings.extend(extra);
+        if !findings.is_empty() {
+            findings.sort_by_key(|f| f.severity);
+            out.insert(skill.id.to_string(), findings);
+        }
+    }
+    out
+}
 
+/// What only shows when skills are loaded together: two under one name, and
+/// descriptions so alike an agent cannot tell them apart. `checked[i]` is
+/// what [`check_dir`] read for `skills[i]`; the result is one list per skill.
+pub fn cross_findings(skills: &[LibrarySkill], checked: &[Checked]) -> Vec<Vec<Finding>> {
     let mut by_name: HashMap<String, Vec<usize>> = HashMap::new();
     for (i, c) in checked.iter().enumerate() {
         if let Some(name) = &c.name {
@@ -463,16 +479,7 @@ pub fn check_library(skills: &[LibrarySkill]) -> BTreeMap<String, Vec<Finding>> 
             }
         }
     }
-
-    for ((skill, c), extra) in skills.iter().zip(checked).zip(cross) {
-        let mut findings = c.findings;
-        findings.extend(extra);
-        if !findings.is_empty() {
-            findings.sort_by_key(|f| f.severity);
-            out.insert(skill.id.to_string(), findings);
-        }
-    }
-    out
+    cross
 }
 
 fn others(skills: &[LibrarySkill], indices: &[usize], me: usize) -> String {

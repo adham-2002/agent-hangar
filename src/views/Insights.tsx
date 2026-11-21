@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FolderInput,
   Gauge,
+  Layers,
   Loader2,
   RefreshCw,
   ShieldCheck,
@@ -19,9 +20,10 @@ import { toast } from "sonner";
 import { cn } from "../utils";
 import { useApp } from "../context/AppContext";
 import * as api from "../lib/tauri";
-import type { ContextCosts, MemoryReport, SkillQuality, UsageReport } from "../lib/tauri";
+import type { ContextCosts, MemoryReport, PresetQuality, SkillQuality, UsageReport } from "../lib/tauri";
 import { getErrorMessage } from "../lib/error";
-import { buildSourceGroups } from "../lib/skillSource";
+import { buildSourceGroups, getSkillSourceInfo } from "../lib/skillSource";
+import { PresetBudgets } from "../components/PresetBudgets";
 import { assignSourceColors } from "../lib/sourceColor";
 import { pluginPacks } from "../lib/pluginPacks";
 import {
@@ -29,6 +31,7 @@ import {
   attributeUsage,
   formatTokens,
   mostUsed,
+  presetBudgets,
   projectOnlyCandidates,
   unusedItems,
   UNUSED_DAYS,
@@ -57,13 +60,14 @@ function relativeDays(seconds: number | null, now: number, t: TFunction) {
 
 export function Insights() {
   const { t, i18n } = useTranslation();
-  const { managedSkills: skills, tools, refreshManagedSkills, projects, refreshProjects } = useApp();
+  const { managedSkills: skills, tools, refreshManagedSkills, projects, refreshProjects, presets } = useApp();
   const inventory = usePluginInventory();
   const [report, setReport] = useState<UsageReport | null>(null);
   const [costs, setCosts] = useState<ContextCosts | null>(null);
   const [quality, setQuality] = useState<SkillQuality[] | null>(null);
   const [home, setHome] = useState<string | null>(null);
   const [memory, setMemory] = useState<MemoryReport | null>(null);
+  const [presetQuality, setPresetQuality] = useState<PresetQuality[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({ [CLAUDE_CODE]: true });
@@ -82,6 +86,10 @@ export function Insights() {
 
   // Separate from the rest, so a failed check never hides the budget.
   const loadQuality = useCallback(async () => {
+    void api
+      .checkPresetQuality()
+      .then(setPresetQuality)
+      .catch(() => setPresetQuality([]));
     try {
       setQuality(await api.checkLibraryQuality());
     } catch {
@@ -123,6 +131,11 @@ export function Insights() {
     };
   }, [skills, inventory.plugins, inventory.details]);
 
+  const usage = useMemo(
+    () => attributeUsage(report, skills, inventory.plugins, inventory.details),
+    [report, skills, inventory.plugins, inventory.details],
+  );
+
   const budgets = useMemo(() => {
     if (!costs) return [];
     return agentBudgets({
@@ -132,9 +145,23 @@ export function Insights() {
       skillCosts: new Map(costs.skills.map((s) => [s.id, s.cost])),
       pluginCosts: new Map(costs.plugins.map((p) => [p.id, { cost: p.cost, exact: p.source === "claude" }])),
       pluginColorKeys,
-      usage: attributeUsage(report, skills, inventory.plugins, inventory.details),
+      usage,
     });
-  }, [costs, report, skills, tools, inventory.plugins, inventory.details, pluginColorKeys]);
+  }, [costs, skills, tools, inventory.plugins, pluginColorKeys, usage]);
+
+  const presetRows = useMemo(() => {
+    if (!costs) return [];
+    return presetBudgets({
+      presets: presets ?? [],
+      skills,
+      skillCosts: new Map(costs.skills.map((s) => [s.id, s.cost])),
+      quality: new Map((quality ?? []).map((q) => [q.skill_id, q.findings])),
+      presetQuality,
+      usageBySkill: report ? usage.bySkill : null,
+      report,
+      nowSeconds: now,
+    });
+  }, [costs, presets, skills, quality, presetQuality, report, usage, now]);
 
   const claude = budgets.find((b) => b.tracksUsage);
   const unused = useMemo(() => unusedItems(claude, report, skills, now), [claude, report, skills, now]);
@@ -367,6 +394,23 @@ export function Insights() {
             </ul>
           )}
           <p className="text-[11px] text-muted">{t("insights.budget.footnote")}</p>
+        </section>
+      ) : null}
+
+      {/* ── Presets: budget and fit ── */}
+      {costs ? (
+        <section aria-label={t("insights.presets.title")} className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-muted" />
+            <h2 className="text-[14px] font-semibold text-primary">{t("insights.presets.title")}</h2>
+          </div>
+          <p className="text-[12px] text-muted">{t("insights.presets.hint")}</p>
+          <PresetBudgets
+            budgets={presetRows}
+            dot={(skill) => dot(getSkillSourceInfo(skill).key)}
+            onEdit={(skill) => setEditor({ kind: "edit", skill })}
+            tracksUsage={report !== null && report.sessions > 0}
+          />
         </section>
       ) : null}
 

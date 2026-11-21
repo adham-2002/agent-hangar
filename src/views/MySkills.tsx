@@ -41,6 +41,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TagRenameDialog } from "../components/TagRenameDialog";
 import { SkillDetailPanel } from "../components/SkillDetailPanel";
 import { SkillEditorDialog, type SkillEditorMode } from "../components/SkillEditorDialog";
+import { PresetBudgetStrip } from "../components/PresetBudgetStrip";
 import { MultiSelectToolbar } from "../components/MultiSelectToolbar";
 import { BatchTagDialog } from "../components/BatchTagDialog";
 import { BatchSyncAgentDialog } from "../components/BatchSyncAgentDialog";
@@ -1437,6 +1438,15 @@ export function MySkills() {
           {t("authoring.newSkill")}
         </button>
       </div>
+      {viewedPreset ? (
+        <PresetBudgetStrip
+          presetId={viewedPreset.id}
+          memberKey={skills
+            .filter((s) => s.preset_ids.includes(viewedPreset.id))
+            .map((s) => `${s.id}:${s.updated_at}`)
+            .join(",")}
+        />
+      ) : null}
 
       <div className="app-toolbar">
         <div className="flex flex-1 items-center gap-3">

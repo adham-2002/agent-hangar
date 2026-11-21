@@ -44,6 +44,95 @@ pub fn check_library_quality_internal(store: &SkillStore) -> Result<Vec<SkillQua
         .collect())
 }
 
+#[derive(Debug, Serialize)]
+pub struct PresetQuality {
+    pub preset_id: String,
+    /// Skills that clash with another skill of the same preset, and how.
+    pub skills: Vec<SkillQuality>,
+}
+
+/// For each preset, what goes wrong when its skills are loaded together:
+/// two under one name, or descriptions an agent cannot tell apart. Each
+/// skill's own problems are left to [`check_library_quality`].
+#[tauri::command]
+pub async fn check_preset_quality(
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Vec<PresetQuality>, AppError> {
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || check_preset_quality_internal(&store)).await?
+}
+
+pub fn check_preset_quality_internal(store: &SkillStore) -> Result<Vec<PresetQuality>, AppError> {
+    let skills = store.get_all_skills().map_err(AppError::db)?;
+    // Each skill folder is read once, however many presets hold it.
+    let checked: std::collections::HashMap<&str, skill_lint::Checked> = skills
+        .iter()
+        .map(|s| (s.id.as_str(), skill_lint::check_dir(Path::new(&s.central_path))))
+        .collect();
+    let mut out = Vec::new();
+    for preset in store.get_all_scenarios().map_err(AppError::db)? {
+        let ids = store.get_skill_ids_for_scenario(&preset.id).map_err(AppError::db)?;
+        let members: Vec<_> = ids.iter().filter_map(|id| skills.iter().find(|s| &s.id == id)).collect();
+        let entries: Vec<LibrarySkill> = members
+            .iter()
+            .map(|s| LibrarySkill { id: &s.id, name: &s.name, dir: Path::new(&s.central_path) })
+            .collect();
+        let checks: Vec<skill_lint::Checked> = members.iter().map(|s| checked[s.id.as_str()].clone()).collect();
+        let together = skill_lint::cross_findings(&entries, &checks)
+            .into_iter()
+            .zip(&members)
+            .filter(|(findings, _)| !findings.is_empty())
+            .map(|(findings, s)| SkillQuality { skill_id: s.id.clone(), findings })
+            .collect();
+        out.push(PresetQuality { preset_id: preset.id, skills: together });
+    }
+    Ok(out)
+}
+
+#[derive(Debug, Serialize)]
+pub struct PresetSummary {
+    pub skills: usize,
+    /// Tokens the preset's skills add to every session.
+    pub always_on: u32,
+    /// Skills that clash with another skill of the preset.
+    pub clashes: usize,
+    /// Skills with an error or warning of their own (library-wide clashes aside).
+    pub problems: usize,
+}
+
+/// One preset's budget and fit, cheap enough for the preset's own page.
+#[tauri::command]
+pub async fn get_preset_summary(
+    preset_id: String,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<PresetSummary, AppError> {
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || preset_summary_internal(&store, &preset_id)).await?
+}
+
+pub fn preset_summary_internal(store: &SkillStore, preset_id: &str) -> Result<PresetSummary, AppError> {
+    let members = store.get_skills_for_scenario(preset_id).map_err(AppError::db)?;
+    let entries: Vec<LibrarySkill> = members
+        .iter()
+        .map(|s| LibrarySkill { id: &s.id, name: &s.name, dir: Path::new(&s.central_path) })
+        .collect();
+    let checks: Vec<skill_lint::Checked> = entries.iter().map(|e| skill_lint::check_dir(e.dir)).collect();
+    let together = skill_lint::cross_findings(&entries, &checks);
+    let problems = checks
+        .iter()
+        .filter(|c| c.findings.iter().any(|f| f.severity != skill_lint::Severity::Info))
+        .count();
+    Ok(PresetSummary {
+        skills: members.len(),
+        always_on: entries
+            .iter()
+            .map(|e| crate::core::context_cost::skill_dir_cost(e.dir).always_on)
+            .sum(),
+        clashes: together.iter().filter(|f| !f.is_empty()).count(),
+        problems,
+    })
+}
+
 /// Check a SKILL.md being written. With `skill_id`, links are checked against
 /// that skill's folder.
 #[tauri::command]
@@ -281,6 +370,46 @@ mod tests {
     }
 
     const DESC: &str = "Format SQL queries. Use when the user asks to tidy SQL.";
+
+    #[test]
+    fn preset_checks_only_report_clashes_between_its_own_skills() {
+        let repo = test_repo();
+        let overlap = "Review pull requests for bugs, style problems and missing tests before merging code changes";
+        let a = create_skill_internal(&repo.store, "review-a", overlap, "Do it.").unwrap();
+        let b = create_skill_internal(&repo.store, "review-b", overlap, "Do it.").unwrap();
+        let c = create_skill_internal(&repo.store, "sql-format", DESC, "Do it.").unwrap();
+        let preset = |id: &str| crate::core::skill_store::ScenarioRecord {
+            id: id.into(),
+            name: id.into(),
+            description: None,
+            icon: None,
+            sort_order: 0,
+            created_at: 0,
+            updated_at: 0,
+        };
+        repo.store.insert_scenario(&preset("both")).unwrap();
+        repo.store.insert_scenario(&preset("one")).unwrap();
+        for id in [&a.skill_id, &b.skill_id, &c.skill_id] {
+            repo.store.add_skill_to_scenario("both", id).unwrap();
+        }
+        repo.store.add_skill_to_scenario("one", &a.skill_id).unwrap();
+        repo.store.add_skill_to_scenario("one", &c.skill_id).unwrap();
+
+        let result = check_preset_quality_internal(&repo.store).unwrap();
+        let both = result.iter().find(|p| p.preset_id == "both").unwrap();
+        let flagged: Vec<&str> = both.skills.iter().map(|s| s.skill_id.as_str()).collect();
+        assert_eq!(flagged.len(), 2);
+        assert!(flagged.contains(&a.skill_id.as_str()) && flagged.contains(&b.skill_id.as_str()));
+        assert!(both.skills.iter().all(|s| s.findings.iter().all(|f| f.code == "description_overlap")));
+        let one = result.iter().find(|p| p.preset_id == "one").unwrap();
+        assert!(one.skills.is_empty(), "the overlapping skill is not in this preset");
+
+        let summary = preset_summary_internal(&repo.store, "both").unwrap();
+        assert_eq!((summary.skills, summary.clashes), (3, 2));
+        assert!(summary.always_on > 0);
+        let summary = preset_summary_internal(&repo.store, "one").unwrap();
+        assert_eq!((summary.skills, summary.clashes), (2, 0));
+    }
 
     #[test]
     fn create_writes_a_local_skill_with_no_source() {

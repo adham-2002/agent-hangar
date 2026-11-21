@@ -3,6 +3,9 @@ import type {
   ManagedSkill,
   PluginDetail,
   PluginInfo,
+  Preset,
+  PresetQuality,
+  SkillFinding,
   SkillUsage,
   ToolInfo,
   UsageReport,
@@ -257,6 +260,95 @@ export function mostUsed(budget: AgentBudget | undefined, limit = 10): BudgetIte
 }
 
 /** `4.8k`, `850`. */
+/** Findings about other skills in the whole library; per preset these are
+ *  replaced by the same checks run on the preset's own skills. */
+const LIBRARY_WIDE_CODES = new Set(["duplicate_name", "description_overlap"]);
+
+export interface PresetSkillRow {
+  skill: ManagedSkill;
+  alwaysOn: number;
+  onInvoke: number;
+  /** Claude Code uses in the last 30 days; null when nothing is known yet. */
+  uses30: number | null;
+  /** The skill's own problems. */
+  findings: SkillFinding[];
+  /** Clashes with another skill of the same preset. */
+  together: SkillFinding[];
+}
+
+export interface PresetBudget {
+  preset: Preset;
+  /** Tokens the preset's skills add to every session. */
+  total: number;
+  /** The most one skill adds when it is used. */
+  heaviestOnInvoke: number;
+  rows: PresetSkillRow[];
+  /** Skills with an error or warning of their own. */
+  problems: number;
+  /** Skills that clash with another skill in the preset. */
+  clashes: number;
+  /** Skills not used in 30 days; null while the transcripts cover less than that. */
+  unused: number | null;
+}
+
+const isProblem = (f: SkillFinding) => f.severity !== "info";
+
+/**
+ * What each preset costs and how well its skills fit together: the skills
+ * it enables, heaviest first, with their own problems and their clashes
+ * with each other. Presets keep the user's order.
+ */
+export function presetBudgets(input: {
+  presets: Preset[];
+  skills: ManagedSkill[];
+  skillCosts: Map<string, ContextCost>;
+  quality: Map<string, SkillFinding[]>;
+  presetQuality: PresetQuality[];
+  usageBySkill: Map<string, Usage> | null;
+  report: UsageReport | null;
+  nowSeconds: number;
+}): PresetBudget[] {
+  const window = UNUSED_DAYS * DAY_SECONDS;
+  const usageKnown =
+    input.usageBySkill !== null && !!input.report?.since && input.nowSeconds - input.report.since >= window;
+  const together = new Map(
+    input.presetQuality.map((p) => [p.preset_id, new Map(p.skills.map((s) => [s.skill_id, s.findings]))]),
+  );
+  return [...input.presets]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((preset) => {
+      const clashes = together.get(preset.id) ?? new Map<string, SkillFinding[]>();
+      const rows: PresetSkillRow[] = input.skills
+        .filter((s) => s.preset_ids.includes(preset.id))
+        .map((skill) => {
+          const cost = input.skillCosts.get(skill.id) ?? { always_on: 0, on_invoke: 0 };
+          return {
+            skill,
+            alwaysOn: cost.always_on,
+            onInvoke: cost.on_invoke,
+            uses30: input.usageBySkill ? (input.usageBySkill.get(skill.id)?.last30Days ?? 0) : null,
+            findings: (input.quality.get(skill.id) ?? []).filter((f) => !LIBRARY_WIDE_CODES.has(f.code)),
+            together: clashes.get(skill.id) ?? [],
+          };
+        })
+        .sort((a, b) => b.alwaysOn - a.alwaysOn || a.skill.name.localeCompare(b.skill.name));
+      const unused = usageKnown
+        ? rows.filter(
+            (r) => (r.uses30 ?? 0) === 0 && input.nowSeconds - r.skill.created_at / 1000 >= window,
+          ).length
+        : null;
+      return {
+        preset,
+        rows,
+        total: rows.reduce((n, r) => n + r.alwaysOn, 0),
+        heaviestOnInvoke: rows.reduce((n, r) => Math.max(n, r.onInvoke), 0),
+        problems: rows.filter((r) => r.findings.some(isProblem)).length,
+        clashes: rows.filter((r) => r.together.length > 0).length,
+        unused,
+      };
+    });
+}
+
 export function formatTokens(n: number): string {
   if (n >= 10_000) return `${Math.round(n / 1000)}k`;
   if (n >= 1_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;

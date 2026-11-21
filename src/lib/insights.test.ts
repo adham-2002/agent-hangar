@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ManagedSkill, PluginInfo, SkillUsage, ToolInfo, UsageReport } from "./tauri";
+import type { ManagedSkill, PluginInfo, Preset, SkillUsage, ToolInfo, UsageReport } from "./tauri";
 import {
   agentBudgets,
   attributeUsage,
   DAY_SECONDS,
   formatTokens,
   mostUsed,
+  presetBudgets,
   projectOnlyCandidates,
   unusedItems,
 } from "./insights";
@@ -187,5 +188,75 @@ describe("formatTokens", () => {
     expect(formatTokens(5127)).toBe("5.1k");
     expect(formatTokens(2000)).toBe("2k");
     expect(formatTokens(48_200)).toBe("48k");
+  });
+});
+
+describe("presetBudgets", () => {
+  const preset = (id: string, sort_order: number) => ({ id, name: id, sort_order }) as unknown as Preset;
+  const inPresets = (s: ManagedSkill, ...ids: string[]) => ({ ...s, preset_ids: ids }) as ManagedSkill;
+  const finding = (code: string, severity: "error" | "warning" | "info" = "warning") => ({
+    code,
+    severity,
+    message: "m",
+    params: {},
+  });
+  const usageReport = (sinceDaysAgo: number): UsageReport => ({
+    sessions: 10,
+    since: NOW - sinceDaysAgo * DAY_SECONDS,
+    skills: [],
+  });
+
+  const skills = [
+    inPresets(skill("a", "review-a", []), "work"),
+    inPresets(skill("b", "review-b", []), "work", "web"),
+    inPresets(skill("c", "sql", [], 5), "work"),
+    inPresets(skill("d", "seo", []), "web"),
+  ];
+  const input = (over: Partial<Parameters<typeof presetBudgets>[0]> = {}) => ({
+    presets: [preset("web", 2), preset("work", 1)],
+    skills,
+    skillCosts: new Map([
+      ["a", { always_on: 50, on_invoke: 900 }],
+      ["b", { always_on: 30, on_invoke: 4000 }],
+      ["c", { always_on: 20, on_invoke: 100 }],
+      ["d", { always_on: 70, on_invoke: 300 }],
+    ]),
+    quality: new Map([
+      ["a", [finding("description_overlap"), finding("body_long")]],
+      ["d", [finding("description_no_when", "info")]],
+    ]),
+    presetQuality: [
+      { preset_id: "work", skills: [{ skill_id: "a", findings: [finding("description_overlap")] }, { skill_id: "b", findings: [finding("description_overlap")] }] },
+      { preset_id: "web", skills: [] },
+    ],
+    usageBySkill: new Map([["b", { uses: 3, last30Days: 3, lastUsed: NOW, projects: [] }]]),
+    report: usageReport(60),
+    nowSeconds: NOW,
+    ...over,
+  });
+
+  it("totals each preset's skills, heaviest first, in the user's order", () => {
+    const [work, web] = presetBudgets(input());
+    expect(work.preset.id).toBe("work");
+    expect(work.rows.map((r) => r.skill.id)).toEqual(["a", "b", "c"]);
+    expect(work.total).toBe(100);
+    expect(work.heaviestOnInvoke).toBe(4000);
+    expect(web.total).toBe(100);
+  });
+
+  it("reports clashes within the preset, not library-wide ones", () => {
+    const [work, web] = presetBudgets(input());
+    expect(work.clashes).toBe(2);
+    expect(work.rows[0].findings.map((f) => f.code)).toEqual(["body_long"]);
+    expect(work.problems).toBe(1);
+    expect(web.clashes).toBe(0);
+    expect(web.problems).toBe(0);
+  });
+
+  it("counts unused skills only when the transcripts cover 30 days, sparing new skills", () => {
+    const [work] = presetBudgets(input());
+    expect(work.unused).toBe(1);
+    expect(presetBudgets(input({ report: usageReport(10) }))[0].unused).toBeNull();
+    expect(presetBudgets(input({ usageBySkill: null }))[0].rows[0].uses30).toBeNull();
   });
 });
