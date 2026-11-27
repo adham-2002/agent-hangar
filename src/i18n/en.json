@@ -111,6 +111,7 @@
       "synced": "Backed up",
       "syncedDesc": "Latest visible snapshot: {{when}}.",
       "noSnapshot": "no snapshot yet",
+      "syncedAt": "Last backed up {{when}}.",
       "failed": "Backup failed",
       "pendingSkills": "{{count}} skill(s) have changes not yet backed up.",
       "remoteOnly": "Updates from your other devices",

@@ -353,9 +353,13 @@ export function Backup() {
         return {
           icon: CheckCircle2,
           title: t("backup.status.synced"),
-          description: t("backup.status.syncedDesc", {
-            when: formatSnapshotWhen(gitStatus?.current_snapshot_tag ?? null) ?? t("backup.status.noSnapshot"),
-          }),
+          // Automatic backups commit without a snapshot tag, so HEAD usually
+          // has none; the last backup time is then the honest answer.
+          description: gitStatus?.current_snapshot_tag
+            ? t("backup.status.syncedDesc", { when: formatSnapshotWhen(gitStatus.current_snapshot_tag) })
+            : gitStatus?.last_commit_time
+              ? t("backup.status.syncedAt", { when: formatDateTime(gitStatus.last_commit_time) })
+              : t("backup.status.syncedDesc", { when: t("backup.status.noSnapshot") }),
           className: "border-emerald-500/30 bg-emerald-500/10",
           iconClassName: "text-emerald-600 dark:text-emerald-400",
         };
