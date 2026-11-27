@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### User-facing
 - **New name** — The window, tray, installer, Start menu and every screen say Agent Hangar. Your library, presets and settings stay where they were (`~/.skills-manager`), and the `skills-manager-cli` command is unchanged.
-- **Credit to the original project** — Settings shows that Agent Hangar is based on skills-manager by Tianliang Zhang (MIT License), with a link to it.
+- **New home** — The project now lives at github.com/adham-2002/agent-hangar; update checks and download links point there.
+- **Acknowledgements** — Settings shows that Agent Hangar is based on skills-manager by Tianliang Zhang (MIT License), with a link to it.
 - **Install note (Windows)** — Because the installed name changed, the installer adds Agent Hangar next to the old "skills-manager" entry. Uninstall the old entry once from Settings → Apps; your data is not affected.
 
 ### Developer & Governance

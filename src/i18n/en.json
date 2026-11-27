@@ -742,7 +742,7 @@
     "about": "About",
     "version": "Agent Hangar {{version}}",
     "tagline": "One place to equip, inspect and maintain your AI coding agents.",
-    "basedOn": "Based on skills-manager by Tianliang Zhang (MIT License)",
+    "basedOn": "Acknowledgements: built on skills-manager by Tianliang Zhang (MIT)",
     "checkUpdate": "Check for Updates",
     "checking": "Checking…",
     "updateAvailable": "New version {{version}} available!",

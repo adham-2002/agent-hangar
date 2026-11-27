@@ -8,13 +8,8 @@
 <p align="center">
   <a href="./README.md">English</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/adham-2002/skills-manager/releases/latest">下载</a>
+  <a href="https://github.com/adham-2002/agent-hangar/releases/latest">下载</a>
 </p>
-
-> Agent Hangar 源自 Tianliang Zhang 的
-> [skills-manager](https://github.com/xingkongliang/skills-manager)（MIT 许可证）。
-> 感谢原作者和贡献者 —— Skill 库、工作区、同步与备份引擎都来自该项目。
-> Agent Hangar 独立维护，并未获得原作者背书。
 
 ## 功能
 
@@ -36,11 +31,15 @@
 
 ## 安装
 
-从 [最新版本](https://github.com/adham-2002/skills-manager/releases/latest) 下载 Windows 安装包。数据保存在 `~/.skills-manager`（沿用原项目的目录名，以保留已有数据）。
+从 [最新版本](https://github.com/adham-2002/agent-hangar/releases/latest) 下载 Windows 安装包。数据保存在 `~/.skills-manager`。
 
-## 跟进原项目
+## 引入 skills-manager 的更新
 
-可以逐个引入原仓库的新功能和修复，而不影响 Agent Hangar 自己的改动。详见 [docs/UPSTREAM.md](docs/UPSTREAM.md)，或运行 `npm run upstream`。
+可以逐个引入 skills-manager 的新功能和修复，而不影响 Agent Hangar 自己的改动。详见 [docs/UPSTREAM.md](docs/UPSTREAM.md)，或运行 `npm run upstream`。
+
+## 致谢
+
+基于 Tianliang Zhang 的 [skills-manager](https://github.com/xingkongliang/skills-manager)（MIT）构建，感谢原作者和贡献者。
 
 ## 许可证
 

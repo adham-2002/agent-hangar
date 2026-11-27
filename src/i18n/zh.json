@@ -736,7 +736,7 @@
     "about": "关于",
     "version": "Agent Hangar {{version}}",
     "tagline": "一个地方装备、检查和维护你的 AI 编程 Agent。",
-    "basedOn": "基于 Tianliang Zhang 的 skills-manager（MIT 许可证）",
+    "basedOn": "致谢：基于 Tianliang Zhang 的 skills-manager（MIT）构建",
     "checkUpdate": "检查更新",
     "checking": "检查中…",
     "updateAvailable": "发现新版本 {{version}}！",
