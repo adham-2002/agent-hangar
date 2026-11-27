@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.4] - 2026-11-27
+
+### Release Overview
+- Checking skills-manager for new features moves out of the app and into the agent-hangar skill.
+
+### User-facing
+- **Original project page removed** — The app no longer has an Original project page. Ask your agent instead, for example "check the original project for features we can add". The agent-hangar skill pulls skills-manager's latest code and writes a full report: what is safe to add, what to add with care, what conflicts with Agent Hangar's own features, and what to skip. Your code changes only after you choose what to take.
+
 ## [1.51.3] - 2026-11-27
 
 ### Release Overview

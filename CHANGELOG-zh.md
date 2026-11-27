@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.4] - 2026-11-27
+
+### 发布概览
+- 检查 skills-manager 新功能的能力从应用移到 agent-hangar Skill 中。
+
+### 用户可见更新
+- **移除原项目页面** — 应用不再包含原项目页面。请直接询问你的 Agent，例如“检查原项目有哪些可以加入的功能”。agent-hangar Skill 会拉取 skills-manager 的最新代码并生成完整报告：可安全加入、需谨慎加入、与 Agent Hangar 已有功能冲突，以及建议跳过的内容。只有在你选择后才会改动代码。
+
 ## [1.51.3] - 2026-11-27
 
 ### 发布概览

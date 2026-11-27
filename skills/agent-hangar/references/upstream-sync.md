@@ -7,36 +7,93 @@ ones into Agent Hangar's code without breaking its own changes. It applies only
 inside an Agent Hangar checkout: a repo with `scripts/upstream.mjs` and an
 `upstream` git remote. The full guide is `docs/UPSTREAM.md` in that repo.
 
-## 1. Report
+## 1. Pull the original project's code
 
-From the repo root, on a clean work tree:
+From the Agent Hangar repo root, on a clean work tree:
 
 ```bash
-npm run upstream            # fetches upstream, lists what is new
+git fetch upstream                              # download skills-manager's latest code
+npm run upstream -- --no-fetch --json --all     # every new commit, tested against our code
+git log -1 --format='%h %as %s' upstream/main   # skills-manager's newest commit
 ```
 
-Each listed commit is marked:
-- `✓` applies cleanly
-- `↳` applies only after an earlier commit in the list; pick them together, in order
-- `!` conflicts in the listed files
+The JSON lists each commit not yet taken or skipped, oldest first. Each entry
+has `subject`, `kind`, `files`, `touches_your_files`, `state` and `conflicts`.
+`state` is one of:
+- `clean`: applies as is
+- `after_earlier`: applies once the commits before it are in
+- `conflicts`: clashes in the listed files
+- `suggest_skip`: release bookkeeping, docs or CI
 
-"Up to date" means every upstream commit is either taken or skipped. Tell the
-user that, along with upstream's newest commit (`git log -1 --oneline upstream/main`).
+A commit recorded in `.upstream/skipped.txt` shows only with `--all`, and its
+hint begins `skipped:`.
 
-## 2. Recommend before taking anything
+If there are no commits, the report is just "Up to date", plus skills-manager's
+newest commit.
 
-Read each commit with `npm run upstream -- show <sha>`, then give the user a
-short table: what it does, whether it fits, and your recommendation.
+## 2. Write the full report
 
-- **Take** bug fixes, safety fixes, and features that don't touch the areas
-  Agent Hangar redesigned.
-- **Suggest skipping** commits that rework UI Agent Hangar has its own version
-  of (the Library, the skill detail sheet), release bookkeeping, and upstream's
-  own branding, links or CI.
-- Record a skip so it is never offered again:
-  `npm run upstream -- skip <sha> "<reason>"`, then commit `.upstream/skipped.txt`.
+Don't change any code in this step. For every pending commit:
 
-Ask before picking, unless the user already asked you to take what fits.
+1. **Read it:** `git show --stat <sha>`, then `git show <sha>` for the files
+   that matter. Work out what it does for a user, in one plain sentence.
+2. **Group the commits that belong together.** A follow-up that names an
+   earlier PR, a commit that only applies `after_earlier`, and a fix to a
+   feature in the same list all form one item.
+3. **Check it against Agent Hangar's own features**, listed below. A commit
+   clashes with a feature when it changes that feature's files or redoes the
+   same thing differently, even if git says `clean`.
+4. **Place it in one group:**
+   - **Safe to add:** `clean`, and touches none of Agent Hangar's own
+     features.
+   - **Add with care:** `clean` or `after_earlier`, but touches files Agent
+     Hangar also changed (`touches_your_files`). Name the area to re-test.
+   - **Conflicts with our features:** `conflicts`, or redoes something Agent
+     Hangar already does its own way. Name our feature, then say whether the
+     intent can be carried over by hand or whether it should be skipped.
+   - **Skip:** release bookkeeping, upstream branding, links or CI, docs only,
+     or already recorded as skipped.
+
+Then present it like this:
+
+```
+skills-manager: N new commits (newest <sha> <date>)
+
+Safe to add
+| Commits | What it adds | Notes |
+Add with care
+| Commits | What it adds | Re-test |
+Conflicts with our features
+| Commits | What it adds | Clashes with | Carry over by hand? |
+Skip
+| Commits | Why |
+
+Recommendation: take <list>; skip <list>, because <reason>.
+```
+
+End by asking which to take. If the user already said "take what fits",
+take **Safe to add** and **Add with care**, and ask about the rest. Record
+every agreed skip with `npm run upstream -- skip <sha> "<reason>"`, then
+commit `.upstream/skipped.txt`.
+
+### Agent Hangar's own features (compare against these)
+
+Keep this list current: add an entry whenever Agent Hangar gains a feature of
+its own.
+
+| Feature | Main files |
+|---|---|
+| Name, credit, repo links (Agent Hangar) | `src/i18n/*.json`, `src-tauri/tauri.conf.json`, `src/lib/appRepo.ts`, `README*` |
+| Library: one card per pack, health line, Individual skills card, Filter / Updates menus | `src/views/MySkills.tsx`, `src/components/SkillRowsLayout.tsx`, `SourceGroupHeader.tsx`, `PluginPackSection.tsx`, `src/lib/skillRows.ts`, `agentSummary.ts`, `filterChips.ts` |
+| Skill detail sheet (our layout; upstream's Files tab was skipped) | `src/components/SkillDetailPanel.tsx` |
+| Claude Code plugins and plugin backup | `src-tauri/src/core/plugin_*.rs`, `commands/plugins.rs`, `src/views/Plugins.tsx` |
+| Insights, preset budgets, sidebar weight dots | `src/views/Insights.tsx`, `src/lib/insights.ts`, `presetLoad.ts`, `components/PresetBudget*.tsx`, `commands/authoring.rs` |
+| Skill quality checks, authoring, `skills lint` / `create` | `src-tauri/src/core/skill_lint.rs`, `commands/authoring.rs`, `src/components/SkillEditorDialog.tsx` |
+| Memory page | `src-tauri/src/core/agent_memory.rs`, `commands/memory.rs`, `src/views/Memory.tsx` |
+| Skill delete (moves aside first, keeps edited copies) | `delete_one_skill` in `src-tauri/src/commands/skills.rs` |
+| Update check on a fork (`version_from_tag`) | `src-tauri/src/commands/settings.rs` |
+| Backup status shows the last backup time | `src/views/Backup.tsx` |
+| Upstream tooling and this skill | `scripts/upstream.mjs`, `docs/UPSTREAM.md`, `skills/agent-hangar/` |
 
 ## 3. Pick on a branch
 

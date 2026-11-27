@@ -11,7 +11,6 @@
     "plugins": "Plugins",
     "insights": "Insights",
     "memory": "Memory",
-    "upstream": "Original project",
     "backup": "Backup",
     "presets": "Presets",
     "newPreset": "New Preset",
@@ -1501,50 +1500,6 @@
       "index_too_long": "MEMORY.md has {{lines}} lines; Claude Code loads only the first {{max}}, so the rest is never seen.",
       "index_broken_link": "MEMORY.md points to {{file}}, which is gone.",
       "index_missing": "There is no MEMORY.md, so Claude starts each session without knowing these memories exist."
-    }
-  },
-  "upstream": {
-    "title": "Original project",
-    "subtitle": "New features and fixes in skills-manager, the project Agent Hangar is built on, and whether each fits your code.",
-    "setupTitle": "Choose your Agent Hangar source folder",
-    "setupBody": "The check runs in the folder you cloned Agent Hangar into. It needs git and Node.js, and it only reads: nothing in your code changes until you take a commit.",
-    "chooseFolder": "Choose folder",
-    "chooseFailed": "That folder can't be used",
-    "sourceLabel": "Source:",
-    "change": "Change",
-    "openProject": "Open skills-manager on GitHub",
-    "checkNow": "Check for updates",
-    "checking": "Checking…",
-    "checkFailed": "Couldn't check the original project",
-    "upToDate": "Up to date",
-    "upToDateBody": "You have everything from skills-manager you chose to take. Its latest commit is {{sha}} ({{date}}): {{subject}}.",
-    "summary_one": "{{count}} new commit · {{clean}} fit, {{conflicts}} need a hand merge",
-    "summary_other": "{{count}} new commits · {{clean}} fit, {{conflicts}} need a hand merge",
-    "copyAgent_one": "Copy request for your agent ({{count}})",
-    "copyAgent_other": "Copy request for your agent ({{count}})",
-    "copyPick": "Copy pick command",
-    "copied": "Copied. Paste it in your agent or terminal in the source folder.",
-    "select": "Select {{sha}}",
-    "skip": "Skip",
-    "copySkip": "Copy the command that hides this commit for good",
-    "defaultSkipReason": "not needed in Agent Hangar",
-    "openCommit": "Open on GitHub",
-    "touchesYours_one": "changes {{count}} file you changed",
-    "touchesYours_other": "changes {{count}} files you changed",
-    "suggestedSkips_one": "{{count}} suggested to skip (release, docs or CI)",
-    "suggestedSkips_other": "{{count}} suggested to skip (release, docs or CI)",
-    "footer": "{{skipped}} skipped on purpose (.upstream/skipped.txt). Last checked {{when}}.",
-    "state": {
-      "clean": "Fits",
-      "after_earlier": "Fits after the ones above",
-      "conflicts": "Hand merge in {{files}} file(s)",
-      "suggest_skip": "Suggested to skip"
-    },
-    "kind": {
-      "feat": "Feature",
-      "fix": "Fix",
-      "perf": "Performance",
-      "other": "Other"
     }
   },
   "memory": {

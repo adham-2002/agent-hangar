@@ -7,7 +7,6 @@ import {
   Puzzle,
   Gauge,
   Brain,
-  GitMerge,
   Download,
   Settings as SettingsIcon,
   FolderOpen,
@@ -178,13 +177,6 @@ export function CommandPalette() {
         label: t("sidebar.memory"),
         icon: <Brain className="h-3.5 w-3.5" />,
         run: () => navigate("/memory"),
-      },
-      {
-        id: "action:upstream",
-        kind: "action",
-        label: t("sidebar.upstream"),
-        icon: <GitMerge className="h-3.5 w-3.5" />,
-        run: () => navigate("/upstream"),
       },
       {
         id: "action:install",
