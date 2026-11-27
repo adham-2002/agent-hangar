@@ -67,7 +67,7 @@ import { applyTextSize } from "../lib/textScale";
 import { getErrorMessage } from "../lib/error";
 import { IS_MACOS, IS_WINDOWS } from "../lib/platform";
 import type { Theme } from "../hooks/useTheme";
-import { APP_REPO_URL } from "../lib/appRepo";
+import { APP_REPO_URL, UPSTREAM_REPO_URL } from "../lib/appRepo";
 
 /** Platforms whose updater artifact can replace the running install.
  *
@@ -609,7 +609,7 @@ export function Settings() {
             enabledCustomCount > 0 ? `${enabledCustomCount} custom` : "",
           ].filter(Boolean).join(", ");
       const parts = [
-        "**Diagnostics** (auto-collected by Skills Manager)",
+        "**Diagnostics** (auto-collected by Agent Hangar)",
         "",
         `- App version: \`${info.app_version}\``,
         `- OS: \`${info.os} ${info.os_version} (${info.arch})\``,
@@ -1812,6 +1812,15 @@ export function Settings() {
                       {t("settings.updateAvailable", { version: appUpdate.latest_version })}
                     </span>
                   )}
+                </p>
+                <p className="text-muted text-[13px]">
+                  <button
+                    type="button"
+                    onClick={() => { openUrl(UPSTREAM_REPO_URL).catch(() => {}); }}
+                    className="underline-offset-2 hover:text-secondary hover:underline"
+                  >
+                    {t("settings.basedOn")}
+                  </button>
                 </p>
               </div>
             </div>

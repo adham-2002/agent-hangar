@@ -259,7 +259,7 @@ jobs:
           }
 
           BUNDLE_DIR="src-tauri/target/${{ matrix.target }}/release/bundle/macos"
-          verify_bundle "built bundle" "$BUNDLE_DIR/skills-manager.app"
+          verify_bundle "built bundle" "$BUNDLE_DIR/Agent Hangar.app"
 
           # The .app.tar.gz — not the .app or the .dmg — is what the in-app
           # updater downloads and unpacks over the running install, so it is the

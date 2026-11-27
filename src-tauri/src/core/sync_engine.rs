@@ -151,7 +151,7 @@ impl ReplacePolicy<'_> {
 
     pub(crate) fn describe(&self) -> &'static str {
         match self {
-            ReplacePolicy::NoClobber => "is not managed by Skills Manager",
+            ReplacePolicy::NoClobber => "is not managed by Agent Hangar",
             ReplacePolicy::Recorded { .. } => "does not match its recorded deployment",
             ReplacePolicy::UserConfirmed => "cannot be replaced",
         }

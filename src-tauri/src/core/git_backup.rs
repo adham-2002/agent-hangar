@@ -1690,7 +1690,7 @@ fn ensure_repo(skills_dir: &Path) -> Result<()> {
 pub(crate) fn ensure_files_ref_format(skills_dir: &Path) -> Result<()> {
     if skills_dir.join(".git").join("reftable").is_dir() {
         anyhow::bail!(
-            "The skills library's git repository uses the reftable format, which Skills Manager cannot read. \
+            "The skills library's git repository uses the reftable format, which Agent Hangar cannot read. \
              Close other git tools, run `git -C \"{}\" refs migrate --ref-format=files` (Git 2.48+), then try again.",
             skills_dir.display()
         );

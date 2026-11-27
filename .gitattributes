@@ -1,0 +1,8 @@
+# Agent Hangar keeps its own README and changelog. When a commit is taken
+# from the original project (npm run upstream -- pick), its edits to these
+# files are dropped instead of conflicting. Needs `merge.ours.driver true`,
+# which the pick command sets.
+README.md merge=ours
+README.zh-CN.md merge=ours
+CHANGELOG.md merge=ours
+CHANGELOG-zh.md merge=ours

@@ -1,0 +1,52 @@
+name: Upstream watch
+
+# Weekly reminder of new commits in the original project
+# (xingkongliang/skills-manager) that this fork has neither taken nor
+# skipped. See docs/UPSTREAM.md.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    if: github.repository != 'xingkongliang/skills-manager'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build the report
+        run: |
+          # The in-order check writes throwaway commits, which need an author.
+          git config user.name "upstream-watch"
+          git config user.email "upstream-watch@users.noreply.github.com"
+          node scripts/upstream.mjs --markdown > report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # With issues turned off for the repo, the run summary is the report.
+          if [ "$(gh repo view "$GITHUB_REPOSITORY" --json hasIssuesEnabled --jq .hasIssuesEnabled)" != "true" ]; then
+            echo "Issues are disabled for this repository; see the run summary."
+            exit 0
+          fi
+          count=$(head -1 report.md | grep -oE '^[0-9]+' || echo 0)
+          existing=$(gh issue list --state open --search 'in:title "Upstream updates"' --json number --jq '.[0].number // empty')
+          if [ "$count" = "0" ]; then
+            if [ -n "$existing" ]; then gh issue close "$existing" --comment "Nothing new upstream."; fi
+            exit 0
+          fi
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body-file report.md
+          else
+            gh issue create --title "Upstream updates" --body-file report.md
+          fi
