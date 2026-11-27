@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.3] - 2026-11-27
+
+### Release Overview
+- A new **Original project** page, and the bundled skill is now called agent-hangar.
+
+### User-facing
+- **Original project page** — Choose your Agent Hangar source folder once, and the page checks skills-manager, the project Agent Hangar is built on, for new features and fixes. It shows whether each fits your code, needs a hand merge, or is best skipped. Select the ones you want and copy a ready request for your agent, or the pick command. Nothing in your code changes from the page.
+- **The agent-hangar skill** — The skill that lets your agents drive Agent Hangar is now called agent-hangar, and it includes a guide for taking updates from skills-manager. The Dashboard's setup card installs it, and libraries that still have the old manage-skills count as set up.
+
+### Developer & Governance
+- `npm run upstream -- --json` prints the report for the app. The upstream-watch workflow now opens its issue through the REST API.
+
 ## [1.51.2] - 2026-11-27
 
 ### Release Overview

@@ -11,6 +11,7 @@
     "plugins": "插件",
     "insights": "洞察",
     "memory": "记忆",
+    "upstream": "原项目",
     "backup": "备份",
     "presets": "Preset",
     "newPreset": "新建 Preset",
@@ -1479,6 +1480,50 @@
       "index_too_long": "MEMORY.md 有 {{lines}} 行；Claude Code 只加载前 {{max}} 行，其余部分永远不会被看到。",
       "index_broken_link": "MEMORY.md 指向的 {{file}} 已不存在。",
       "index_missing": "没有 MEMORY.md，所以 Claude 每次会话开始时都不知道这些记忆的存在。"
+    }
+  },
+  "upstream": {
+    "title": "原项目",
+    "subtitle": "Agent Hangar 所基于的 skills-manager 的新功能和修复，以及它们是否适合你的代码。",
+    "setupTitle": "选择你的 Agent Hangar 源码文件夹",
+    "setupBody": "检查会在你克隆 Agent Hangar 的文件夹中运行，需要 git 和 Node.js。它只读取：在你引入提交之前，代码不会有任何改动。",
+    "chooseFolder": "选择文件夹",
+    "chooseFailed": "无法使用该文件夹",
+    "sourceLabel": "源码：",
+    "change": "更改",
+    "openProject": "在 GitHub 打开 skills-manager",
+    "checkNow": "检查更新",
+    "checking": "正在检查…",
+    "checkFailed": "无法检查原项目",
+    "upToDate": "已是最新",
+    "upToDateBody": "你已拥有 skills-manager 中所有选择引入的内容。其最新提交是 {{sha}}（{{date}}）：{{subject}}。",
+    "summary_one": "{{count}} 个新提交 · {{clean}} 个适用，{{conflicts}} 个需手动合并",
+    "summary_other": "{{count}} 个新提交 · {{clean}} 个适用，{{conflicts}} 个需手动合并",
+    "copyAgent_one": "复制给 Agent 的请求（{{count}}）",
+    "copyAgent_other": "复制给 Agent 的请求（{{count}}）",
+    "copyPick": "复制 pick 命令",
+    "copied": "已复制。在源码文件夹中粘贴到 Agent 或终端。",
+    "select": "选择 {{sha}}",
+    "skip": "跳过",
+    "copySkip": "复制永久隐藏此提交的命令",
+    "defaultSkipReason": "Agent Hangar 不需要",
+    "openCommit": "在 GitHub 打开",
+    "touchesYours_one": "改动了 {{count}} 个你改过的文件",
+    "touchesYours_other": "改动了 {{count}} 个你改过的文件",
+    "suggestedSkips_one": "{{count}} 个建议跳过（发布、文档或 CI）",
+    "suggestedSkips_other": "{{count}} 个建议跳过（发布、文档或 CI）",
+    "footer": "{{skipped}} 个已有意跳过（.upstream/skipped.txt）。上次检查：{{when}}。",
+    "state": {
+      "clean": "适用",
+      "after_earlier": "在上方提交之后适用",
+      "conflicts": "需在 {{files}} 个文件中手动合并",
+      "suggest_skip": "建议跳过"
+    },
+    "kind": {
+      "feat": "功能",
+      "fix": "修复",
+      "perf": "性能",
+      "other": "其他"
     }
   },
   "memory": {

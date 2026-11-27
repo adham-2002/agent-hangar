@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.3] - 2026-11-27
+
+### 发布概览
+- 新增 **原项目** 页面，内置 Skill 更名为 agent-hangar。
+
+### 用户可见更新
+- **原项目页面** — 选择一次你的 Agent Hangar 源码文件夹，页面就会检查 Agent Hangar 所基于的 skills-manager 的新功能和修复，并显示每个提交是否适合你的代码、需要手动合并，还是建议跳过。勾选需要的提交，即可复制给 Agent 的请求或 pick 命令。页面不会改动你的代码。
+- **agent-hangar Skill** — 让 Agent 操作 Agent Hangar 的 Skill 更名为 agent-hangar，并包含引入 skills-manager 更新的指南。仪表盘的设置卡片会安装它；仍保留旧 manage-skills 的库视为已设置。
+
+### 开发者与治理更新
+- `npm run upstream -- --json` 为应用输出报告；upstream-watch 工作流改用 REST API 创建 issue。
+
 ## [1.51.2] - 2026-11-27
 
 ### 发布概览

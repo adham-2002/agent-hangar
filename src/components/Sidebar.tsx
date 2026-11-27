@@ -10,6 +10,7 @@ import {
   Puzzle,
   Gauge,
   Brain,
+  GitMerge,
   CloudUpload,
   Settings,
   Plus,
@@ -204,6 +205,7 @@ export function Sidebar() {
     { name: t("sidebar.plugins"), path: "/plugins", icon: Puzzle },
     { name: t("sidebar.insights"), path: "/insights", icon: Gauge },
     { name: t("sidebar.memory"), path: "/memory", icon: Brain },
+    { name: t("sidebar.upstream"), path: "/upstream", icon: GitMerge },
     { name: t("sidebar.backup"), path: "/backup", icon: CloudUpload },
   ];
 

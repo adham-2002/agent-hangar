@@ -18,6 +18,7 @@ import { Backup } from "./views/Backup";
 import { Plugins } from "./views/Plugins";
 import { Insights } from "./views/Insights";
 import { Memory } from "./views/Memory";
+import { Upstream } from "./views/Upstream";
 
 function ThemedToaster() {
   const { resolvedTheme } = useThemeContext();
@@ -53,6 +54,7 @@ function App() {
               <Route path="/plugins" element={<Plugins />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/memory" element={<Memory />} />
+              <Route path="/upstream" element={<Upstream />} />
               <Route path="/backup" element={<Backup />} />
               <Route path="/project/:id" element={<ProjectDetail />} />
               <Route path="/settings" element={<Settings />} />
