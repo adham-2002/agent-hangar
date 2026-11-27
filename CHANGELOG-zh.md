@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.1] - 2026-11-27
+
+### 发布概览
+- 引入 skills-manager 的三个修复。
+
+### 用户可见更新
+- **切换同步方式会转换已部署的 Skills** — 在设置中切换软链接 / 复制时，已部署到 Agent 的 Skills 也会一并转换，而不只影响新的部署。
+- **Antigravity** — 在 Antigravity 忽略软链接的位置改为复制部署，确保它能读到这些 Skills。
+- **备份** — 仅换行符不同的改动不再导致自动备份失败。
+
 ## [1.51.0] - 2026-11-27
 
 ### 发布概览

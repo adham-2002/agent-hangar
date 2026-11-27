@@ -4,7 +4,8 @@ use std::sync::Arc;
 use tauri::{Manager, State};
 
 use crate::core::{
-    central_repo, error::AppError, file_manager, log_sanitize, skill_store::SkillStore, skillssh_api,
+    central_repo, error::AppError, file_manager, log_sanitize, scenario_service,
+    skill_store::SkillStore, skillssh_api,
 };
 
 /// The GitHub repository this build is released from (`owner/repo`). The
@@ -54,6 +55,19 @@ pub fn log_startup_event(label: String, elapsed_ms: u64) {
     log::info!("frontend startup: {display} {elapsed_ms} ms");
 }
 
+const SYNC_MODE_KEY: &str = "sync_mode";
+
+/// Whether `set_settings` must read the stored value before overwriting it.
+fn needs_previous_value(key: &str) -> bool {
+    key == SYNC_MODE_KEY
+}
+
+/// Whether saving `new` for `key` changes the sync mode, so existing
+/// deployments must be converted (#654).
+fn sync_mode_switched(key: &str, previous: Option<&str>, new: &str) -> bool {
+    key == SYNC_MODE_KEY && previous != Some(new)
+}
+
 #[tauri::command]
 pub async fn set_settings(
     app: tauri::AppHandle,
@@ -65,9 +79,25 @@ pub async fn set_settings(
     let key_for_store = key.clone();
     let value_for_store = value.clone();
     tauri::async_runtime::spawn_blocking(move || {
+        // Read the old value only for sync_mode: proxy_url and
+        // git_backup_remote_url are stored encrypted, and a read that fails to
+        // decrypt them must not stop the user from saving a new value.
+        let previous = if needs_previous_value(&key_for_store) {
+            store.get_setting(&key_for_store).map_err(AppError::db)?
+        } else {
+            None
+        };
         store
             .set_setting(&key_for_store, &value_for_store)
             .map_err(AppError::db)?;
+        // Deployments made in the old mode stay what they are on disk until
+        // something rewrites them, so changing the mode converts them now
+        // (#654). The setting stays saved if a conversion fails: the error
+        // names what is still on the old mode.
+        if sync_mode_switched(&key_for_store, previous.as_deref(), &value_for_store) {
+            let converted = scenario_service::resync_targets_to_sync_mode(&store)?;
+            log::info!("sync_mode set to {value_for_store}: converted {converted} deployment(s)");
+        }
         if key_for_store == "show_tray_icon" {
             let tray_enabled = matches!(
                 value_for_store.trim().to_ascii_lowercase().as_str(),
@@ -615,6 +645,25 @@ mod tests {
         assert!(version_gt(&version_from_tag("fork-1.49.0"), "1.48.0"));
         assert!(version_gt(&version_from_tag("v1.48.1"), "1.48.0"));
         assert!(!version_gt(&version_from_tag("v1.48.0"), "1.48.0"));
+    }
+
+    #[test]
+    fn only_sync_mode_reads_the_previous_value() {
+        assert!(needs_previous_value("sync_mode"));
+        // Encrypted keys must be writable even when the old value cannot be
+        // decrypted, so they are never read first.
+        assert!(!needs_previous_value("proxy_url"));
+        assert!(!needs_previous_value("git_backup_remote_url"));
+        assert!(!needs_previous_value("show_tray_icon"));
+    }
+
+    #[test]
+    fn sync_mode_switch_needs_a_changed_sync_mode() {
+        assert!(sync_mode_switched("sync_mode", Some("symlink"), "copy"));
+        assert!(sync_mode_switched("sync_mode", None, "copy"));
+        assert!(!sync_mode_switched("sync_mode", Some("copy"), "copy"));
+        assert!(!sync_mode_switched("proxy_url", Some("a"), "b"));
+        assert!(!sync_mode_switched("proxy_url", None, "b"));
     }
 
     #[test]
