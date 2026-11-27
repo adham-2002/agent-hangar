@@ -16,7 +16,8 @@
     "newPreset": "New Preset",
     "projects": "Project Workspaces",
     "addProject": "Link Project",
-    "settings": "Settings"
+    "settings": "Settings",
+    "presetLoad": "About {{tokens}} tokens every session · {{clashes}} clashes"
   },
   "help": {
     "eyebrow": "Guide",
@@ -505,8 +506,7 @@
       "noSkills": "This plugin bundles no skills.",
       "managedByClaude": "Managed by Claude Code. Changes apply to new Claude Code sessions.",
       "turnedOn": "{{name}} turned on for new Claude Code sessions",
-      "turnedOff": "{{name}} turned off for new Claude Code sessions",
-      "more": "+{{count}} more"
+      "turnedOff": "{{name}} turned off for new Claude Code sessions"
     },
     "duplicatePack": {
       "title": "{{source}} is installed twice for Claude Code: as library skills and as the plugin {{plugin}}",
@@ -520,6 +520,40 @@
       "title": "Nothing is enabled in this preset yet",
       "hint": "Show all skills to pick the ones this preset should enable.",
       "showAll": "Show all skills"
+    },
+    "packCard": {
+      "more": "+{{count}} more",
+      "less": "Show less",
+      "updates_one": "{{count}} update",
+      "updates_other": "{{count}} updates",
+      "issues_one": "{{count}} issue",
+      "issues_other": "{{count}} issues",
+      "enabledOf": "{{enabled}}/{{total}}",
+      "enableAll": "Enable the whole pack in this preset",
+      "disableAll": "Disable the whole pack in this preset",
+      "individual": "Individual skills"
+    },
+    "agents": {
+      "all": "All agents",
+      "none": "Not deployed",
+      "count_one": "{{count}} of {{total}} agents",
+      "count_other": "{{count}} of {{total}} agents",
+      "partly": "{{agents}} (partly)",
+      "edit": "Agents: {{summary}}",
+      "title": "Turn on or off per agent"
+    },
+    "maintenance": {
+      "title": "Updates",
+      "upToDate": "All skills are up to date.",
+      "backup": "Backup: {{status}}"
+    },
+    "filtersPanel": {
+      "title": "Filter",
+      "type": "Type",
+      "source": "Source",
+      "active": "Active filters",
+      "remove": "Remove {{name}}",
+      "clear": "Clear all"
     }
   },
   "install": {

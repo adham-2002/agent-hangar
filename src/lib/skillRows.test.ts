@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSkillRows, renderedSkillIds, sectionRows } from "./skillRows";
+import { buildSkillRows, INDIVIDUAL_KEY, packCells, renderedSkillIds } from "./skillRows";
 import { countHiddenSelected } from "./selectionVisibility";
 import type { SkillSourceGroup } from "./skillSource";
 import type { ManagedSkill } from "./tauri";
@@ -120,21 +120,67 @@ describe("hidden selection, as the toolbar and the delete dialog report it", () 
   });
 });
 
-describe("sectionRows", () => {
-  it("puts each source's skills under its own header, a collapsed one with none", () => {
-    const sections = sectionRows(build([repoA, repoB, single], { "repo:a": true }));
-    expect(sections.map((s) => [s.header?.group.key, s.items.map((i) => i.skill.id)])).toEqual([
-      ["repo:a", ["a1", "a2"]],
-      ["repo:b", []],
-      ["repo:c", ["c1"]],
-    ]);
+describe("packCells", () => {
+  const big = group("repo:big", ["k1", "k2", "k3", "k4", "k5", "k6", "k7"]);
+  const ids = (rows: { skill: ManagedSkill }[]) => rows.map((r) => r.skill.id);
+
+  it("makes one card per pack, previewing its first skills while collapsed", () => {
+    const cells = packCells(build([big, repoA]));
+    expect(cells.map((c) => c.kind)).toEqual(["pack", "pack"]);
+    const first = cells[0];
+    if (first.kind !== "pack") throw new Error("pack expected");
+    expect(ids(first.visible)).toEqual(["k1", "k2", "k3", "k4", "k5"]);
+    expect(first.hidden).toBe(2);
   });
 
-  it("keeps ungrouped skills in one headerless section", () => {
+  it("lists every skill of an opened pack, or of every pack while searching", () => {
+    const open = packCells(build([big], { "repo:big": true }))[0];
+    const searched = packCells(build([big], {}, true))[0];
+    for (const cell of [open, searched]) {
+      if (cell.kind !== "pack") throw new Error("pack expected");
+      expect(cell.visible).toHaveLength(7);
+      expect(cell.hidden).toBe(0);
+    }
+  });
+
+  it("keeps a source of one skill a plain skill card", () => {
+    const cells = packCells(build([single, repoB]));
+    expect(cells[0].kind).toBe("pack");
+    expect(cells[1]).toEqual({ kind: "single", row: { kind: "skill", skill: single.skills[0] } });
+  });
+
+  it("leaves ungrouped skills as loose cards", () => {
     const rows = buildSkillRows({ groups: null, skills: [skill("x"), skill("y")], openBySource: {}, searching: false });
-    const sections = sectionRows(rows);
-    expect(sections).toHaveLength(1);
-    expect(sections[0].header).toBeNull();
-    expect(sections[0].items.map((i) => i.skill.id)).toEqual(["x", "y"]);
+    expect(packCells(rows).map((c) => c.kind)).toEqual(["loose", "loose"]);
+  });
+});
+
+describe("packCells gathering and order", () => {
+  const solo = (key: string) => group(key, [`${key}-skill`]);
+  const ids = (rows: { skill: ManagedSkill }[]) => rows.map((r) => r.skill.id);
+  const individual = { label: "Individual skills", open: false, searching: false };
+
+  it("gathers two or more one-skill sources into one card, after the packs", () => {
+    const cells = packCells(build([solo("s1"), repoA, solo("s2")]), { individual });
+    expect(cells.map((c) => c.kind)).toEqual(["pack", "pack"]);
+    const last = cells[1];
+    if (last.kind !== "pack") throw new Error("pack expected");
+    expect(last.header.group.key).toBe(INDIVIDUAL_KEY);
+    expect(last.header.group.label).toBe("Individual skills");
+    expect(ids(last.visible)).toEqual(["s1-skill", "s2-skill"]);
+  });
+
+  it("keeps a lone one-skill source a plain card", () => {
+    const cells = packCells(build([solo("s1"), repoA]), { individual });
+    expect(cells.map((c) => c.kind)).toEqual(["pack", "single"]);
+  });
+
+  it("puts skills that need attention first inside a card", () => {
+    const cells = packCells(build([group("repo:z", ["z1", "z2", "z3"])]), {
+      priority: (s) => (s.id === "z3" ? 0 : 2),
+    });
+    const pack = cells[0];
+    if (pack.kind !== "pack") throw new Error("pack expected");
+    expect(ids(pack.visible)).toEqual(["z3", "z1", "z2"]);
   });
 });

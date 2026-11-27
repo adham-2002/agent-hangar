@@ -43,17 +43,16 @@ const render = (grid: boolean) =>
 afterEach(() => cleanup());
 
 describe("PluginPackSection", () => {
-  it("previews a collapsed pack's skills in the grid, then shows them as cards", async () => {
+  it("shows a plugin as one card listing its first skills, then all of them", async () => {
     const c = render(true);
-    expect(c.textContent).toContain("audit, schema, sitemap mySkills.pluginPacks.more:2");
-    await act(async () => (c.querySelector("button[aria-expanded]") as HTMLButtonElement).click());
-    const cards = [...c.querySelectorAll("ul.grid > li")].map((li) => li.textContent);
-    expect(cards).toEqual(["audit", "schema", "sitemap", "geo", "local"]);
+    const rows = () => [...c.querySelectorAll("li li")].map((li) => li.textContent);
+    expect(rows()).toEqual(["audit", "schema", "sitemap", "geo", "local"]);
+    expect(c.textContent).not.toContain("mySkills.packCard.more");
   });
 
   it("keeps the list view's chips and no preview", async () => {
     const c = render(false);
-    expect(c.textContent).not.toContain("mySkills.pluginPacks.more");
+    expect(c.querySelector("li li")).toBeNull();
     await act(async () => (c.querySelector("button[aria-expanded]") as HTMLButtonElement).click());
     expect(c.querySelector("ul.grid")).toBeNull();
     expect(c.querySelectorAll("ul.flex-wrap > li")).toHaveLength(5);

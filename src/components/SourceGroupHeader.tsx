@@ -4,6 +4,9 @@ import type { ManagedSkill, ToolInfo } from "../lib/tauri";
 import type { SourceColorClass } from "../lib/sourceColor";
 import { CardActionMenu, type CardAction } from "./CardActionMenu";
 import { PackAgentDots } from "./PackAgentDots";
+import { AgentSummaryButton } from "./AgentSummaryButton";
+import { ToggleSwitch } from "./ToggleSwitch";
+import { summarizeAgents } from "../lib/agentSummary";
 import { cn } from "../utils";
 
 interface Props {
@@ -29,6 +32,10 @@ interface Props {
   /** Another pack or card update is running; agent switches wait for it. */
   agentsDisabled: boolean;
   actions: CardAction[];
+  /** In a card: how many of the pack's skills have an update or a problem. */
+  health?: { updates: number; issues: number };
+  /** In a card inside a preset: how much of the pack the preset enables, and a switch for all of it. */
+  presetProgress?: { enabled: number; total: number; busy: boolean; onToggle: () => void } | null;
 }
 
 /**
@@ -53,6 +60,8 @@ export function SourceGroupHeader({
   pendingAgentKey,
   agentsDisabled,
   actions,
+  health,
+  presetProgress,
 }: Props) {
   const { t } = useTranslation();
   const title = (
@@ -78,32 +87,29 @@ export function SourceGroupHeader({
   const titleClass = "flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-1 text-left font-semibold";
   const selectLabel = t("mySkills.sourceGroup.select", { source: label });
 
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-1 text-muted",
-        inPanel ? "pb-0.5" : "border-b border-border-subtle pt-3 pb-1"
-      )}
+  const titleEl = collapsible ? (
+    <button
+      type="button"
+      onClick={onToggleOpen}
+      aria-expanded={expanded}
+      className={cn(titleClass, "transition-colors hover:bg-surface-hover hover:text-secondary")}
     >
-      {collapsible ? (
-        <button
-          type="button"
-          onClick={onToggleOpen}
-          aria-expanded={expanded}
-          className={cn(titleClass, "transition-colors hover:bg-surface-hover hover:text-secondary")}
-        >
-          {title}
-        </button>
-      ) : (
-        <div className={titleClass}>{title}</div>
-      )}
-      <PackAgentDots
-        skills={skills}
-        tools={tools}
-        onToggle={onTogglePackAgent}
-        pendingKey={pendingAgentKey}
-        disabled={agentsDisabled}
-      />
+      {title}
+    </button>
+  ) : (
+    <div className={titleClass}>{title}</div>
+  );
+  const dots = (
+    <PackAgentDots
+      skills={skills}
+      tools={tools}
+      onToggle={onTogglePackAgent}
+      pendingKey={pendingAgentKey}
+      disabled={agentsDisabled}
+    />
+  );
+  const controls = (
+    <>
       <button
         type="button"
         role="checkbox"
@@ -122,6 +128,59 @@ export function SourceGroupHeader({
         )}
       </button>
       <CardActionMenu label={t("mySkills.sourceGroup.actions", { source: label })} actions={actions} />
+    </>
+  );
+
+  // In a card: the name and the pack's menu on top, then one quiet line that
+  // says where the pack is deployed and only mentions what needs attention.
+  if (inPanel) {
+    const summary = summarizeAgents(skills, tools);
+    return (
+      <div className="flex flex-col text-muted">
+        <div className="flex min-w-0 items-center gap-1" title={label}>
+          {titleEl}
+          {controls}
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5 pl-5 text-[12px]">
+          <AgentSummaryButton summary={summary}>{dots}</AgentSummaryButton>
+          {health && health.updates > 0 ? (
+            <span className="shrink-0 text-amber-600 dark:text-amber-400">
+              · {t("mySkills.packCard.updates", { count: health.updates })}
+            </span>
+          ) : null}
+          {health && health.issues > 0 ? (
+            <span className="shrink-0 text-rose-600 dark:text-rose-400">
+              · {t("mySkills.packCard.issues", { count: health.issues })}
+            </span>
+          ) : null}
+          {presetProgress ? (
+            <span className="ml-auto flex shrink-0 items-center gap-1.5">
+              <span className="tabular-nums text-faint">
+                {t("mySkills.packCard.enabledOf", { enabled: presetProgress.enabled, total: presetProgress.total })}
+              </span>
+              <ToggleSwitch
+                checked={presetProgress.enabled === presetProgress.total}
+                onChange={presetProgress.onToggle}
+                loading={presetProgress.busy}
+                disabled={presetProgress.busy}
+                title={
+                  presetProgress.enabled === presetProgress.total
+                    ? t("mySkills.packCard.disableAll")
+                    : t("mySkills.packCard.enableAll")
+                }
+              />
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 border-b border-border-subtle pt-3 pb-1 text-muted">
+      {titleEl}
+      {dots}
+      {controls}
     </div>
   );
 }

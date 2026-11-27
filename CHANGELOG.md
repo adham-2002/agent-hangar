@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.50.0] - 2026-11-27
+
+### Release Overview
+- A calmer Library: each pack is one card, deployment is said in words, and the toolbar keeps maintenance and filters out of the way.
+
+### User-facing
+- **One card per pack** — In the grid every pack is a single card: its name on top, then one line that says where it is deployed and only mentions what needs you (updates, issues), then its skills as compact rows. Skills with a problem or an update come first, the first five show, and **+N more** opens the rest. A search opens every card. The grid always groups this way; **Group by source** now only affects the list.
+- **Individual skills** — Sources that hold a single skill are gathered into one "Individual skills" card, so the grid is one kind of card instead of a mix.
+- **Deployment in words** — Instead of a row of agent icons on every card, a card says "All agents" (quietly), names the agents it is on, or warns "Not deployed". Click it to switch agents on or off.
+- **Presets in a pack** — Inside a preset, a pack card shows how many of its skills the preset enables (12/40) and one switch for the whole pack; each skill row has its own switch.
+- **Calmer toolbar** — Type, Source and Tags filters move into one **Filter** menu; active filters show as chips you can remove. Check for updates, Update all and the backup status move into one **Updates** menu that shows a count only when there is something to update.
+- **Preset weight in the sidebar** — Each preset shows a dot for what it adds to every session: green light, amber medium, red heavy, with a ring when its skills clash. Hover for the numbers.
+- **Plugins as pack cards** — Claude Code plugins use the same card in the grid.
+- **Fixed** — The Memory page showed "Â·" instead of "·" between a memory's details.
+
 ## [1.49.0] - 2026-11-27
 
 ### Release Overview

@@ -16,7 +16,8 @@
     "newPreset": "新建 Preset",
     "projects": "项目工作区",
     "addProject": "关联项目",
-    "settings": "设置"
+    "settings": "设置",
+    "presetLoad": "每次会话约 {{tokens}} 个 token · {{clashes}} 处冲突"
   },
   "help": {
     "eyebrow": "操作指南",
@@ -501,8 +502,7 @@
       "noSkills": "此插件不包含 Skill。",
       "managedByClaude": "由 Claude Code 管理，更改将在新的 Claude Code 会话中生效。",
       "turnedOn": "已为新的 Claude Code 会话开启 {{name}}",
-      "turnedOff": "已为新的 Claude Code 会话关闭 {{name}}",
-      "more": "另有 {{count}} 个"
+      "turnedOff": "已为新的 Claude Code 会话关闭 {{name}}"
     },
     "duplicatePack": {
       "title": "{{source}} 在 Claude Code 中安装了两次：库中的 Skill 和插件 {{plugin}}",
@@ -514,6 +514,40 @@
       "title": "此 Preset 还没有启用任何 Skill",
       "hint": "显示全部 Skill，选择此 Preset 要启用的 Skill。",
       "showAll": "显示全部 Skill"
+    },
+    "packCard": {
+      "more": "另有 {{count}} 个",
+      "less": "收起",
+      "updates_one": "{{count}} 个更新",
+      "updates_other": "{{count}} 个更新",
+      "issues_one": "{{count}} 个问题",
+      "issues_other": "{{count}} 个问题",
+      "enabledOf": "{{enabled}}/{{total}}",
+      "enableAll": "在此预设中启用整个技能包",
+      "disableAll": "在此预设中停用整个技能包",
+      "individual": "单个 Skill"
+    },
+    "agents": {
+      "all": "所有 Agent",
+      "none": "未部署",
+      "count_one": "{{total}} 个 Agent 中的 {{count}} 个",
+      "count_other": "{{total}} 个 Agent 中的 {{count}} 个",
+      "partly": "{{agents}}（部分）",
+      "edit": "Agent：{{summary}}",
+      "title": "按 Agent 开启或关闭"
+    },
+    "maintenance": {
+      "title": "更新",
+      "upToDate": "所有 Skill 都是最新的。",
+      "backup": "备份：{{status}}"
+    },
+    "filtersPanel": {
+      "title": "筛选",
+      "type": "类型",
+      "source": "来源",
+      "active": "当前筛选",
+      "remove": "移除 {{name}}",
+      "clear": "全部清除"
     }
   },
   "install": {
