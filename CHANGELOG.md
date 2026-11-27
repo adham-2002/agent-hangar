@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.1] - 2026-11-27
+
+### Release Overview
+- Three fixes taken from skills-manager.
+
+### User-facing
+- **Changing the sync mode converts what is already deployed** — Switching between symlink and copy in Settings now converts skills already deployed to your agents, instead of only affecting new ones.
+- **Antigravity** — Skills are deployed to Antigravity as copies where it ignores symlinks, so it actually sees them.
+- **Backup** — Changes that only differ in line endings no longer make an automatic backup round fail.
+
 ## [1.51.0] - 2026-11-27
 
 ### Release Overview
