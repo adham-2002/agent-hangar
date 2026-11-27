@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.0] - 2026-11-27
+
+### Release Overview
+- The grid view groups skills under their pack, just like the list.
+
+### User-facing
+- **Packs as panels in the grid** — With **Group by source** on, the grid draws each pack as a panel: its header (agent switches, select, actions) on top and its skills as cards inside, instead of a header row lost among the cards. Collapse a pack to fold its cards away.
+- **Plugin packs in the grid** — Claude Code plugins now follow the grid too: each plugin is a panel, a collapsed one previews its first skills, and an open one shows every skill as a card you can click to read.
+
 ## [1.48.1] - 2026-11-27
 
 ### Release Overview

@@ -53,3 +53,32 @@ export function buildSkillRows({
 export function renderedSkillIds(rows: SkillListRow[]): string[] {
   return rows.flatMap((row) => (row.kind === "skill" ? [row.skill.id] : []));
 }
+
+export type GroupRow = Extract<SkillListRow, { kind: "group" }>;
+export type SkillRow = Extract<SkillListRow, { kind: "skill" }>;
+
+/** A source's header with the skills shown under it; `header` is null for
+ *  skills listed without grouping. */
+export interface SkillRowSection {
+  header: GroupRow | null;
+  items: SkillRow[];
+}
+
+/**
+ * The rows regrouped as sections, so the card grid can draw each source as
+ * a panel holding its own cards rather than a header lost among them. A
+ * collapsed source is a section with no items.
+ */
+export function sectionRows(rows: SkillListRow[]): SkillRowSection[] {
+  const sections: SkillRowSection[] = [];
+  for (const row of rows) {
+    if (row.kind === "group") {
+      sections.push({ header: row, items: [] });
+    } else if (sections.length > 0) {
+      sections[sections.length - 1].items.push(row);
+    } else {
+      sections.push({ header: null, items: [row] });
+    }
+  }
+  return sections;
+}

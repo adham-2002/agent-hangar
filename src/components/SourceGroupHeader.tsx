@@ -15,8 +15,9 @@ interface Props {
   collapsible: boolean;
   expanded: boolean;
   onToggleOpen: () => void;
-  /** Span the whole row of the card grid. */
-  fullWidth: boolean;
+  /** The header sits at the top of its pack's panel in the card grid,
+   *  which draws the frame, so the header drops its own divider. */
+  inPanel: boolean;
   /** Claude Code also gets this pack from an enabled plugin. */
   alsoPlugin: boolean;
   selection: "none" | "some" | "all";
@@ -43,7 +44,7 @@ export function SourceGroupHeader({
   collapsible,
   expanded,
   onToggleOpen,
-  fullWidth,
+  inPanel,
   alsoPlugin,
   selection,
   onToggleSelect,
@@ -80,8 +81,8 @@ export function SourceGroupHeader({
   return (
     <div
       className={cn(
-        "flex items-center gap-1 border-b border-border-subtle pt-3 pb-1 text-muted",
-        fullWidth && "col-span-full"
+        "flex items-center gap-1 text-muted",
+        inPanel ? "pb-0.5" : "border-b border-border-subtle pt-3 pb-1"
       )}
     >
       {collapsible ? (
