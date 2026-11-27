@@ -15,6 +15,7 @@ export interface ToolInfo {
   project_relative_skills_dir: string | null;
   has_project_path_override: boolean;
   category: ToolCategory;
+  icon: string | null;
 }
 
 export interface ManagedSkill {
@@ -80,7 +81,9 @@ export type SkillSourceDiffContentKind =
   | "text"
   | "binary"
   | "too_large"
-  | "permission_only";
+  | "permission_only"
+  /** Text past the preview's total budget, listed without its content. */
+  | "omitted";
 
 export interface SkillSourceDiffEntry {
   relative_path: string;
@@ -97,6 +100,8 @@ export interface SkillSourceDiff {
   source_label: string;
   revision: string;
   entries: SkillSourceDiffEntry[];
+  /** More files differ than `entries` lists; the scan stopped at its limit. */
+  truncated: boolean;
 }
 
 export interface Preset {
@@ -222,13 +227,18 @@ export const addCustomTool = (
   displayName: string,
   skillsDir: string,
   projectRelativeSkillsDir?: string,
+  icon?: string | null,
 ) =>
   invoke<void>("add_custom_tool", {
     key,
     displayName,
     skillsDir,
     projectRelativeSkillsDir: projectRelativeSkillsDir ?? null,
+    icon: icon ?? null,
   });
+
+export const setCustomToolIcon = (key: string, icon: string | null) =>
+  invoke<void>("set_custom_tool_icon", { key, icon });
 
 export const removeCustomTool = (key: string) =>
   invoke<void>("remove_custom_tool", { key });

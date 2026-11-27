@@ -20,7 +20,7 @@ const tool = (key: string, display_name: string): ToolInfo => ({
   has_path_override: false,
   project_relative_skills_dir: null,
   has_project_path_override: false,
-  category: "coding",
+  category: "coding", icon: null,
 });
 
 const tools = [tool("claude_code", "Claude Code"), tool("codex", "Codex")];

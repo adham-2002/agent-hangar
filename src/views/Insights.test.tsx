@@ -45,6 +45,7 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn().mockResolvedValue(() =
 vi.mock("@tauri-apps/api/path", () => ({ homeDir: vi.fn().mockResolvedValue("/home/me") }));
 vi.mock("../lib/tauri", () => api);
 vi.mock("../context/AppContext", () => ({
+  useOptionalApp: () => null,
   useApp: () => ({
     managedSkills: app.skills,
     tools: app.tools,
@@ -78,7 +79,7 @@ const claude: ToolInfo = {
   has_path_override: false,
   project_relative_skills_dir: null,
   has_project_path_override: false,
-  category: "coding",
+  category: "coding", icon: null,
 };
 
 const flush = () => act(async () => { await Promise.resolve(); });

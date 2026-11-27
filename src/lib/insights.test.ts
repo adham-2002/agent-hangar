@@ -50,7 +50,7 @@ const tool = (key: string): ToolInfo => ({
   has_path_override: false,
   project_relative_skills_dir: null,
   has_project_path_override: false,
-  category: "coding",
+  category: "coding", icon: null,
 });
 
 const row = (name: string, uses: number, last30: number, typed = 0): SkillUsage => ({
