@@ -5,7 +5,7 @@
  * an update. Keep in sync with `APP_REPO` in src-tauri/src/commands/settings.rs
  * and the updater endpoint in tauri.conf.json.
  */
-export const APP_REPO = "adham-2002/skills-manager";
+export const APP_REPO = "adham-2002/agent-hangar";
 export const APP_REPO_URL = `https://github.com/${APP_REPO}`;
 export const APP_RELEASES_URL = `${APP_REPO_URL}/releases`;
 

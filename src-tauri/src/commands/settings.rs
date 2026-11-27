@@ -11,7 +11,7 @@ use crate::core::{
 /// version check asks it for the latest release, so a fork that ships its own
 /// builds is never offered someone else's. Keep in sync with `APP_REPO` in
 /// src/lib/appRepo.ts and the updater endpoint in tauri.conf.json.
-const APP_REPO: &str = "adham-2002/skills-manager";
+const APP_REPO: &str = "adham-2002/agent-hangar";
 
 #[derive(serde::Serialize)]
 pub struct AppUpdateInfo {

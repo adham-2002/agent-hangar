@@ -12,7 +12,8 @@
 
 ### 用户可见更新
 - **新名称** — 窗口、托盘、安装包、开始菜单和所有界面都显示 Agent Hangar。技能库、Preset 和设置仍保存在原位置（`~/.skills-manager`），`skills-manager-cli` 命令不变。
-- **致谢原项目** — 设置页注明 Agent Hangar 基于 Tianliang Zhang 的 skills-manager（MIT 许可证），并附链接。
+- **新地址** — 项目迁移到 github.com/adham-2002/agent-hangar，更新检查和下载链接都指向这里。
+- **致谢** — 设置页注明 Agent Hangar 基于 Tianliang Zhang 的 skills-manager（MIT 许可证），并附链接。
 - **安装说明（Windows）** — 由于安装名称变化，安装程序会在旧的 “skills-manager” 旁新增 Agent Hangar。请在 设置 → 应用 中卸载旧条目一次；数据不受影响。
 
 ### 开发者与治理更新

@@ -8,15 +8,8 @@
 <p align="center">
   <a href="./README.zh-CN.md">中文说明</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/adham-2002/skills-manager/releases/latest">Download</a>
+  <a href="https://github.com/adham-2002/agent-hangar/releases/latest">Download</a>
 </p>
-
-> Agent Hangar started as a fork of
-> [skills-manager](https://github.com/xingkongliang/skills-manager) by
-> Tianliang Zhang, released under the MIT License. Thank you to the original
-> author and contributors — the skill library, workspaces, sync and backup
-> engine all come from that project. Agent Hangar is maintained separately and
-> is not endorsed by the original author.
 
 ## What it does
 
@@ -39,7 +32,7 @@
 ## Install
 
 Download the Windows installer from the
-[latest release](https://github.com/adham-2002/skills-manager/releases/latest).
+[latest release](https://github.com/adham-2002/agent-hangar/releases/latest).
 
 To build from source you need Node.js 20+, Rust stable and the
 [Tauri prerequisites](https://tauri.app/start/prerequisites/):
@@ -50,18 +43,22 @@ npm run tauri:dev      # run in development
 npm run tauri build    # build an installer
 ```
 
-Your library lives in `~/.skills-manager` (the folder name is kept from the
-original project so existing installs keep their data).
+Your library lives in `~/.skills-manager`.
 
-## Following the original project
+## Taking changes from skills-manager
 
-New features and fixes from the original repository can be brought in one at a
+New features and fixes from skills-manager can be brought in one at a
 time without disturbing Agent Hangar's own changes. See
 [docs/UPSTREAM.md](docs/UPSTREAM.md), or run:
 
 ```bash
 npm run upstream
 ```
+
+## Acknowledgements
+
+Built on [skills-manager](https://github.com/xingkongliang/skills-manager)
+by Tianliang Zhang (MIT). Thanks to its author and contributors.
 
 ## License
 
