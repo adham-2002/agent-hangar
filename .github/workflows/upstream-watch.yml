@@ -33,20 +33,24 @@ jobs:
       - name: Open, update or close the issue
         env:
           GH_TOKEN: ${{ github.token }}
+        # REST only: `gh issue create` goes through GraphQL, which the workflow
+        # token is refused ("Resource not accessible by integration").
         run: |
-          # With issues turned off for the repo, the run summary is the report.
-          if [ "$(gh repo view "$GITHUB_REPOSITORY" --json hasIssuesEnabled --jq .hasIssuesEnabled)" != "true" ]; then
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" != "true" ]; then
             echo "Issues are disabled for this repository; see the run summary."
             exit 0
           fi
           count=$(head -1 report.md | grep -oE '^[0-9]+' || echo 0)
-          existing=$(gh issue list --state open --search 'in:title "Upstream updates"' --json number --jq '.[0].number // empty')
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100"             --jq '[.[] | select(.pull_request == null and .title == "Upstream updates")][0].number // empty')
           if [ "$count" = "0" ]; then
-            if [ -n "$existing" ]; then gh issue close "$existing" --comment "Nothing new upstream."; fi
+            if [ -n "$existing" ]; then
+              gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$existing/comments" -f body="Nothing new upstream." >/dev/null
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/$existing" -f state=closed >/dev/null
+            fi
             exit 0
           fi
           if [ -n "$existing" ]; then
-            gh issue edit "$existing" --body-file report.md
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/$existing" -F body=@report.md >/dev/null
           else
-            gh issue create --title "Upstream updates" --body-file report.md
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues" -f title="Upstream updates" -F body=@report.md >/dev/null
           fi
