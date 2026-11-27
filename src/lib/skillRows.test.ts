@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSkillRows, renderedSkillIds } from "./skillRows";
+import { buildSkillRows, renderedSkillIds, sectionRows } from "./skillRows";
 import { countHiddenSelected } from "./selectionVisibility";
 import type { SkillSourceGroup } from "./skillSource";
 import type { ManagedSkill } from "./tauri";
@@ -117,5 +117,24 @@ describe("hidden selection, as the toolbar and the delete dialog report it", () 
     });
     expect(countHiddenSelected(allIds, renderedSkillIds(ungrouped))).toBe(0);
     expect(countHiddenSelected(allIds, renderedSkillIds(build([repoA, repoB], {}, true)))).toBe(0);
+  });
+});
+
+describe("sectionRows", () => {
+  it("puts each source's skills under its own header, a collapsed one with none", () => {
+    const sections = sectionRows(build([repoA, repoB, single], { "repo:a": true }));
+    expect(sections.map((s) => [s.header?.group.key, s.items.map((i) => i.skill.id)])).toEqual([
+      ["repo:a", ["a1", "a2"]],
+      ["repo:b", []],
+      ["repo:c", ["c1"]],
+    ]);
+  });
+
+  it("keeps ungrouped skills in one headerless section", () => {
+    const rows = buildSkillRows({ groups: null, skills: [skill("x"), skill("y")], openBySource: {}, searching: false });
+    const sections = sectionRows(rows);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].header).toBeNull();
+    expect(sections[0].items.map((i) => i.skill.id)).toEqual(["x", "y"]);
   });
 });

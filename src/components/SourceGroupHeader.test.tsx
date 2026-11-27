@@ -36,7 +36,7 @@ function renderHeader(over: Partial<Parameters<typeof SourceGroupHeader>[0]> = {
     collapsible: true,
     expanded: false,
     onToggleOpen: vi.fn(),
-    fullWidth: true,
+    inPanel: false,
     alsoPlugin: false,
     selection: "none" as const,
     onToggleSelect: vi.fn(),

@@ -50,6 +50,7 @@ import { ToggleSwitch } from "../components/ToggleSwitch";
 import { CardActionMenu } from "../components/CardActionMenu";
 import { SourceGroupHeader } from "../components/SourceGroupHeader";
 import { PluginPackSection } from "../components/PluginPackSection";
+import { SkillRowsLayout } from "../components/SkillRowsLayout";
 import { DuplicatePackBanner } from "../components/DuplicatePackBanner";
 import { usePluginInventory } from "../hooks/usePluginInventory";
 import { CLAUDE_CODE_KEY, findDuplicatePacks, pluginPacks } from "../lib/pluginPacks";
@@ -1727,15 +1728,10 @@ export function MySkills() {
             items={filtered.map((s) => s.id)}
             strategy={viewMode === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
           >
-          <div
-            className={cn(
-              "pb-8",
-              viewMode === "grid"
-                ? "grid grid-cols-2 gap-3 lg:grid-cols-3"
-                : "flex flex-col gap-0.5"
-            )}
-          >
-          {sourceRows.map((row) => {
+          <SkillRowsLayout
+            rows={sourceRows}
+            grid={viewMode === "grid"}
+            renderRow={(row) => {
             if (row.kind === "group") {
               const label = row.group.label || t("mySkills.sourcePicker.unknownSource");
               const groupIds = row.group.skills.map((s) => s.id);
@@ -1757,7 +1753,7 @@ export function MySkills() {
                   onToggleOpen={() =>
                     setGroupOpen((prev) => ({ ...prev, [row.group.key]: !row.expanded }))
                   }
-                  fullWidth={viewMode === "grid"}
+                  inPanel={viewMode === "grid"}
                   alsoPlugin={duplicateGroupKeys.has(row.group.key)}
                   selection={selection}
                   onToggleSelect={() => {
@@ -2318,8 +2314,8 @@ export function MySkills() {
               )}
               </SortableSkillItem>
             );
-          })}
-        </div>
+          }}
+          />
           </SortableContext>
         </DndContext>
       )}
@@ -2332,6 +2328,7 @@ export function MySkills() {
           pending={pluginInventory.pending}
           onToggle={(plugin) => void handleTogglePluginPack(plugin)}
           onOpenPlugins={() => navigate("/plugins")}
+          grid={viewMode === "grid"}
         />
       )}
 

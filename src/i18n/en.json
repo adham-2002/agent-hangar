@@ -505,7 +505,8 @@
       "noSkills": "This plugin bundles no skills.",
       "managedByClaude": "Managed by Claude Code. Changes apply to new Claude Code sessions.",
       "turnedOn": "{{name}} turned on for new Claude Code sessions",
-      "turnedOff": "{{name}} turned off for new Claude Code sessions"
+      "turnedOff": "{{name}} turned off for new Claude Code sessions",
+      "more": "+{{count}} more"
     },
     "duplicatePack": {
       "title": "{{source}} is installed twice for Claude Code: as library skills and as the plugin {{plugin}}",
