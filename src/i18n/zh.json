@@ -501,8 +501,7 @@
       "noSkills": "此插件不包含 Skill。",
       "managedByClaude": "由 Claude Code 管理，更改将在新的 Claude Code 会话中生效。",
       "turnedOn": "已为新的 Claude Code 会话开启 {{name}}",
-      "turnedOff": "已为新的 Claude Code 会话关闭 {{name}}",
-      "more": "另有 {{count}} 个"
+      "turnedOff": "已为新的 Claude Code 会话关闭 {{name}}"
     },
     "duplicatePack": {
       "title": "{{source}} 在 Claude Code 中安装了两次：库中的 Skill 和插件 {{plugin}}",
@@ -514,6 +513,10 @@
       "title": "此 Preset 还没有启用任何 Skill",
       "hint": "显示全部 Skill，选择此 Preset 要启用的 Skill。",
       "showAll": "显示全部 Skill"
+    },
+    "packCard": {
+      "more": "另有 {{count}} 个",
+      "less": "收起"
     }
   },
   "install": {

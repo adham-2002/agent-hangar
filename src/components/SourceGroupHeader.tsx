@@ -78,32 +78,29 @@ export function SourceGroupHeader({
   const titleClass = "flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-1 text-left font-semibold";
   const selectLabel = t("mySkills.sourceGroup.select", { source: label });
 
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-1 text-muted",
-        inPanel ? "pb-0.5" : "border-b border-border-subtle pt-3 pb-1"
-      )}
+  const titleEl = collapsible ? (
+    <button
+      type="button"
+      onClick={onToggleOpen}
+      aria-expanded={expanded}
+      className={cn(titleClass, "transition-colors hover:bg-surface-hover hover:text-secondary")}
     >
-      {collapsible ? (
-        <button
-          type="button"
-          onClick={onToggleOpen}
-          aria-expanded={expanded}
-          className={cn(titleClass, "transition-colors hover:bg-surface-hover hover:text-secondary")}
-        >
-          {title}
-        </button>
-      ) : (
-        <div className={titleClass}>{title}</div>
-      )}
-      <PackAgentDots
-        skills={skills}
-        tools={tools}
-        onToggle={onTogglePackAgent}
-        pendingKey={pendingAgentKey}
-        disabled={agentsDisabled}
-      />
+      {title}
+    </button>
+  ) : (
+    <div className={titleClass}>{title}</div>
+  );
+  const dots = (
+    <PackAgentDots
+      skills={skills}
+      tools={tools}
+      onToggle={onTogglePackAgent}
+      pendingKey={pendingAgentKey}
+      disabled={agentsDisabled}
+    />
+  );
+  const controls = (
+    <>
       <button
         type="button"
         role="checkbox"
@@ -122,6 +119,30 @@ export function SourceGroupHeader({
         )}
       </button>
       <CardActionMenu label={t("mySkills.sourceGroup.actions", { source: label })} actions={actions} />
+    </>
+  );
+
+  // In a card the name gets the whole width; the pack's controls sit below it.
+  if (inPanel) {
+    return (
+      <div className="flex flex-col text-muted">
+        <div className="flex min-w-0" title={label}>
+          {titleEl}
+        </div>
+        <div className="flex items-center gap-1 pl-5">
+          {dots}
+          <span className="flex-1" />
+          {controls}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 border-b border-border-subtle pt-3 pb-1 text-muted">
+      {titleEl}
+      {dots}
+      {controls}
     </div>
   );
 }

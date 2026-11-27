@@ -505,8 +505,7 @@
       "noSkills": "This plugin bundles no skills.",
       "managedByClaude": "Managed by Claude Code. Changes apply to new Claude Code sessions.",
       "turnedOn": "{{name}} turned on for new Claude Code sessions",
-      "turnedOff": "{{name}} turned off for new Claude Code sessions",
-      "more": "+{{count}} more"
+      "turnedOff": "{{name}} turned off for new Claude Code sessions"
     },
     "duplicatePack": {
       "title": "{{source}} is installed twice for Claude Code: as library skills and as the plugin {{plugin}}",
@@ -520,6 +519,10 @@
       "title": "Nothing is enabled in this preset yet",
       "hint": "Show all skills to pick the ones this preset should enable.",
       "showAll": "Show all skills"
+    },
+    "packCard": {
+      "more": "+{{count}} more",
+      "less": "Show less"
     }
   },
   "install": {

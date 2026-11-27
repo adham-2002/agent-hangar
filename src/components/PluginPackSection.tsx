@@ -8,6 +8,7 @@ import { CardActionMenu } from "./CardActionMenu";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { PluginSkillSheet, type PluginSkillTarget } from "./PluginSkillSheet";
 import { cn } from "../utils";
+import { PACK_PREVIEW } from "../lib/skillRows";
 
 interface Props {
   packs: PluginPack[];
@@ -17,12 +18,11 @@ interface Props {
   pending: Set<string>;
   onToggle: (plugin: PluginInfo) => void;
   onOpenPlugins: () => void;
-  /** Card grid: each pack is a panel holding its skills as cards. */
+  /** Card grid: each plugin is one card listing its skills, like a library pack. */
   grid?: boolean;
 }
 
-/** How many skill names a collapsed pack previews in the grid. */
-const PREVIEW = 3;
+
 
 /**
  * Claude Code plugins listed as packs in Library, below the library's own
@@ -47,17 +47,22 @@ export function PluginPackSection({
     <section className="pb-8" aria-label={t("mySkills.pluginPacks.title")}>
       <h2 className="app-section-title mb-1">{t("mySkills.pluginPacks.title")}</h2>
       <p className="mb-2 text-[12px] text-muted">{t("mySkills.pluginPacks.hint")}</p>
-      <ul className={cn("flex flex-col", grid && "gap-3")}>
+      <ul className={grid ? "grid grid-cols-2 items-start gap-3 lg:grid-cols-3" : "flex flex-col"}>
         {packs.map(({ plugin, detail, colorKey }) => {
           const expanded = open[plugin.id] ?? false;
           const skills = detail?.skills ?? [];
           const color = colors.get(colorKey) ?? null;
+          const readSkill = (name: string) => {
+            if (plugin.install_path) {
+              setOpenSkill({ installPath: plugin.install_path, skill: name, pluginName: plugin.name });
+            }
+          };
           return (
             <li
               key={plugin.id}
               className={
                 grid
-                  ? "rounded-xl border border-border-subtle bg-surface-hover/30 p-2.5"
+                  ? "app-panel flex flex-col gap-1 px-2.5 pt-2 pb-2 shadow-card"
                   : "border-b border-border-subtle"
               }
             >
@@ -127,51 +132,51 @@ export function PluginPackSection({
                   ]}
                 />
               </div>
-              {grid && !expanded && skills.length > 0 ? (
-                <p className="truncate px-1 pl-6 text-[12px] text-muted">
-                  {skills.slice(0, PREVIEW).join(", ")}
-                  {skills.length > PREVIEW
-                    ? ` ${t("mySkills.pluginPacks.more", { count: skills.length - PREVIEW })}`
-                    : ""}
-                </p>
-              ) : null}
-              {expanded ? (
-                <div className={grid ? "mt-2" : "px-1 pb-3"}>
-                  {skills.length > 0 && grid ? (
-                    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                      {skills.map((name) => (
+              {grid ? (
+                <>
+                  {skills.length > 0 ? (
+                    <ul className="flex flex-col border-t border-border-faint pt-1">
+                      {(expanded ? skills : skills.slice(0, PACK_PREVIEW)).map((name) => (
                         <li key={name}>
                           <button
                             type="button"
                             disabled={!plugin.install_path}
-                            onClick={() => {
-                              if (plugin.install_path) {
-                                setOpenSkill({ installPath: plugin.install_path, skill: name, pluginName: plugin.name });
-                              }
-                            }}
-                            className="app-panel relative flex h-full w-full items-center gap-2 px-3 py-2.5 text-left shadow-card transition-all hover:-translate-y-px hover:border-border hover:shadow-card-hover disabled:cursor-default disabled:hover:translate-y-0"
+                            onClick={() => readSkill(name)}
+                            className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-surface-hover disabled:cursor-default"
                           >
-                            <span
-                              aria-hidden
-                              className={cn("absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full", color ?? "bg-surface-active")}
-                            />
-                            <span className="min-w-0 truncate text-[13px] font-medium text-primary">{name}</span>
+                            <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center">
+                              <span className="h-1.5 w-1.5 rounded-full bg-surface-active" />
+                            </span>
+                            <span className="min-w-0 truncate text-[13px] text-secondary">{name}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
-                  ) : skills.length > 0 ? (
+                  ) : (
+                    <p className="px-1.5 text-[12px] text-muted">{t("mySkills.pluginPacks.noSkills")}</p>
+                  )}
+                  {skills.length > PACK_PREVIEW ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpen((prev) => ({ ...prev, [plugin.id]: !expanded }))}
+                      className="self-start rounded-md px-1.5 py-0.5 text-[12px] font-medium text-accent-light transition-colors hover:bg-accent-bg"
+                    >
+                      {expanded
+                        ? t("mySkills.packCard.less")
+                        : t("mySkills.packCard.more", { count: skills.length - PACK_PREVIEW })}
+                    </button>
+                  ) : null}
+                </>
+              ) : expanded ? (
+                <div className="px-1 pb-3">
+                  {skills.length > 0 ? (
                     <ul className="flex flex-wrap gap-1.5">
                       {skills.map((name) => (
                         <li key={name}>
                           <button
                             type="button"
                             disabled={!plugin.install_path}
-                            onClick={() => {
-                              if (plugin.install_path) {
-                                setOpenSkill({ installPath: plugin.install_path, skill: name, pluginName: plugin.name });
-                              }
-                            }}
+                            onClick={() => readSkill(name)}
                             className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-secondary transition-colors hover:border-border hover:bg-surface-hover hover:text-primary"
                           >
                             {name}
@@ -182,9 +187,7 @@ export function PluginPackSection({
                   ) : (
                     <p className="text-[12px] text-muted">{t("mySkills.pluginPacks.noSkills")}</p>
                   )}
-                  <p className={cn("text-[12px] text-muted", grid ? "mt-2 px-1" : "mt-2")}>
-                    {t("mySkills.pluginPacks.managedByClaude")}
-                  </p>
+                  <p className="mt-2 text-[12px] text-muted">{t("mySkills.pluginPacks.managedByClaude")}</p>
                 </div>
               ) : null}
             </li>

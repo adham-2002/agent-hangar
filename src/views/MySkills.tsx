@@ -202,7 +202,9 @@ export function MySkills() {
   const [viewMode, setViewMode, groupBySourceChoice, setGroupBySource] = useSkillViewMode();
   const libraryGroups = useMemo(() => buildSourceGroups(skills), [skills]);
   // Until the user picks, group as soon as the library holds a multi-skill pack.
-  const groupBySource = groupBySourceChoice ?? defaultGroupBySource(libraryGroups);
+  // The grid always shows packs as cards; the choice applies to the list.
+  const groupBySource =
+    viewMode === "grid" ? true : (groupBySourceChoice ?? defaultGroupBySource(libraryGroups));
   // Claude Code plugins are packs too: listed beside the library's sources, and
   // checked against them for a pack Claude Code would load twice.
   const pluginInventory = usePluginInventory();
@@ -1541,6 +1543,7 @@ export function MySkills() {
             >
               <List className="h-4 w-4" />
             </button>
+            {viewMode === "list" && (
             <button
               onClick={() => setGroupBySource(!groupBySource)}
               aria-pressed={groupBySource}
@@ -1553,6 +1556,7 @@ export function MySkills() {
             >
               <FolderTree className="h-4 w-4" />
             </button>
+            )}
 
             {/* Selection can stay active in either view. */}
             <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 self-center bg-border-subtle" />
@@ -1731,7 +1735,8 @@ export function MySkills() {
           <SkillRowsLayout
             rows={sourceRows}
             grid={viewMode === "grid"}
-            renderRow={(row) => {
+            onToggleGroup={(key, open) => setGroupOpen((prev) => ({ ...prev, [key]: open }))}
+            renderRow={(row, place) => {
             if (row.kind === "group") {
               const label = row.group.label || t("mySkills.sourcePicker.unknownSource");
               const groupIds = row.group.skills.map((s) => s.id);
@@ -1753,7 +1758,7 @@ export function MySkills() {
                   onToggleOpen={() =>
                     setGroupOpen((prev) => ({ ...prev, [row.group.key]: !row.expanded }))
                   }
-                  inPanel={viewMode === "grid"}
+                  inPanel={place === "packHeader"}
                   alsoPlugin={duplicateGroupKeys.has(row.group.key)}
                   selection={selection}
                   onToggleSelect={() => {
@@ -1824,6 +1829,68 @@ export function MySkills() {
               && (skill.source_type === "local" || skill.source_type === "import");
             const displayName = skillDisplayNames.get(skill.id) || skill.name;
             const { color: sourceColor, label: sourceLabel } = skillSourceMeta(skill);
+
+            if (place === "packItem") {
+              return (
+                <div
+                  className={cn(
+                    "group relative flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-surface-hover",
+                    isMultiSelect && selectedIds.has(skill.id) && "bg-accent-bg"
+                  )}
+                  title={skill.description || displayName}
+                  onClick={() =>
+                    isMultiSelect ? toggleSelect(skill.id) : openSkillDetailById(skill.id)
+                  }
+                >
+                  {deletingIds.has(skill.id) && (
+                    <Loader2 className="absolute right-1.5 h-3.5 w-3.5 animate-spin text-muted" />
+                  )}
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                    {isMultiSelect ? (
+                      selectedIds.has(skill.id)
+                        ? <SquareCheck className="h-3.5 w-3.5 text-accent" />
+                        : <Square className="h-3.5 w-3.5 text-faint" />
+                    ) : (
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          enabledInPreset ? "bg-accent-light" : "bg-surface-active"
+                        )}
+                      />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-secondary group-hover:text-primary">
+                    {displayName}
+                  </span>
+                  {conflictIds.has(skill.id) && (
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                      title={t("mySkills.needsAttentionHint")}
+                    />
+                  )}
+                  {showUpdatePill && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRefreshSkill(skill); }}
+                      disabled={updatingSkillId === skill.id}
+                      className="shrink-0 rounded-md p-0.5 text-amber-600 transition-colors hover:bg-amber-500/15 disabled:opacity-50 dark:text-amber-400"
+                      title={refreshLabel(skill)}
+                      aria-label={refreshLabel(skill)}
+                    >
+                      <RotateCcw className={cn("h-3 w-3", updatingSkillId === skill.id && "animate-spin")} />
+                    </button>
+                  )}
+                  {viewedPreset && !isMultiSelect && (
+                    <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+                      <ToggleSwitch
+                        checked={enabledInPreset}
+                        onChange={() => handleTogglePreset(skill)}
+                        title={enabledInPreset ? t("mySkills.enabledButton") : t("mySkills.enable")}
+                      />
+                    </span>
+                  )}
+                </div>
+              );
+            }
 
             if (viewMode === "grid") {
               return (

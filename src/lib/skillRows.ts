@@ -57,28 +57,37 @@ export function renderedSkillIds(rows: SkillListRow[]): string[] {
 export type GroupRow = Extract<SkillListRow, { kind: "group" }>;
 export type SkillRow = Extract<SkillListRow, { kind: "skill" }>;
 
-/** A source's header with the skills shown under it; `header` is null for
- *  skills listed without grouping. */
-export interface SkillRowSection {
-  header: GroupRow | null;
-  items: SkillRow[];
-}
+/** How many of a pack's skills its grid card lists before "+N more". */
+export const PACK_PREVIEW = 5;
+
+/** One cell of the grouped card grid. */
+export type PackCell =
+  | { kind: "single"; row: SkillRow }
+  | { kind: "pack"; header: GroupRow; visible: SkillRow[]; hidden: number }
+  | { kind: "loose"; row: SkillRow };
 
 /**
- * The rows regrouped as sections, so the card grid can draw each source as
- * a panel holding its own cards rather than a header lost among them. A
- * collapsed source is a section with no items.
+ * The rows as grid cells: a source with several skills becomes one pack card
+ * listing its skills (the first few while collapsed, all once opened or while
+ * searching), and a source with one skill stays a plain skill card, since a
+ * frame around a single skill adds nothing. Ungrouped rows stay loose cards.
  */
-export function sectionRows(rows: SkillListRow[]): SkillRowSection[] {
-  const sections: SkillRowSection[] = [];
+export function packCells(rows: SkillListRow[], preview = PACK_PREVIEW): PackCell[] {
+  const grouped = rows.some((row) => row.kind === "group");
+  const cells: PackCell[] = [];
   for (const row of rows) {
-    if (row.kind === "group") {
-      sections.push({ header: row, items: [] });
-    } else if (sections.length > 0) {
-      sections[sections.length - 1].items.push(row);
-    } else {
-      sections.push({ header: null, items: [row] });
+    if (row.kind === "skill") {
+      // Grouped, a source's skills are listed from its header's group.
+      if (!grouped) cells.push({ kind: "loose", row });
+      continue;
     }
+    const skills = row.group.skills.map((skill): SkillRow => ({ kind: "skill", skill }));
+    if (skills.length === 1) {
+      cells.push({ kind: "single", row: skills[0] });
+      continue;
+    }
+    const visible = row.expanded ? skills : skills.slice(0, preview);
+    cells.push({ kind: "pack", header: row, visible, hidden: skills.length - visible.length });
   }
-  return sections;
+  return cells;
 }

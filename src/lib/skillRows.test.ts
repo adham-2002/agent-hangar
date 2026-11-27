@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSkillRows, renderedSkillIds, sectionRows } from "./skillRows";
+import { buildSkillRows, packCells, renderedSkillIds } from "./skillRows";
 import { countHiddenSelected } from "./selectionVisibility";
 import type { SkillSourceGroup } from "./skillSource";
 import type { ManagedSkill } from "./tauri";
@@ -120,21 +120,37 @@ describe("hidden selection, as the toolbar and the delete dialog report it", () 
   });
 });
 
-describe("sectionRows", () => {
-  it("puts each source's skills under its own header, a collapsed one with none", () => {
-    const sections = sectionRows(build([repoA, repoB, single], { "repo:a": true }));
-    expect(sections.map((s) => [s.header?.group.key, s.items.map((i) => i.skill.id)])).toEqual([
-      ["repo:a", ["a1", "a2"]],
-      ["repo:b", []],
-      ["repo:c", ["c1"]],
-    ]);
+describe("packCells", () => {
+  const big = group("repo:big", ["k1", "k2", "k3", "k4", "k5", "k6", "k7"]);
+  const ids = (rows: { skill: ManagedSkill }[]) => rows.map((r) => r.skill.id);
+
+  it("makes one card per pack, previewing its first skills while collapsed", () => {
+    const cells = packCells(build([big, repoA]));
+    expect(cells.map((c) => c.kind)).toEqual(["pack", "pack"]);
+    const first = cells[0];
+    if (first.kind !== "pack") throw new Error("pack expected");
+    expect(ids(first.visible)).toEqual(["k1", "k2", "k3", "k4", "k5"]);
+    expect(first.hidden).toBe(2);
   });
 
-  it("keeps ungrouped skills in one headerless section", () => {
+  it("lists every skill of an opened pack, or of every pack while searching", () => {
+    const open = packCells(build([big], { "repo:big": true }))[0];
+    const searched = packCells(build([big], {}, true))[0];
+    for (const cell of [open, searched]) {
+      if (cell.kind !== "pack") throw new Error("pack expected");
+      expect(cell.visible).toHaveLength(7);
+      expect(cell.hidden).toBe(0);
+    }
+  });
+
+  it("keeps a source of one skill a plain skill card", () => {
+    const cells = packCells(build([single, repoB]));
+    expect(cells[0]).toEqual({ kind: "single", row: { kind: "skill", skill: single.skills[0] } });
+    expect(cells[1].kind).toBe("pack");
+  });
+
+  it("leaves ungrouped skills as loose cards", () => {
     const rows = buildSkillRows({ groups: null, skills: [skill("x"), skill("y")], openBySource: {}, searching: false });
-    const sections = sectionRows(rows);
-    expect(sections).toHaveLength(1);
-    expect(sections[0].header).toBeNull();
-    expect(sections[0].items.map((i) => i.skill.id)).toEqual(["x", "y"]);
+    expect(packCells(rows).map((c) => c.kind)).toEqual(["loose", "loose"]);
   });
 });
