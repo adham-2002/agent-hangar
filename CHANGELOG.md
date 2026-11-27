@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.0] - 2026-11-27
+
+### Release Overview
+- The app is now called **Agent Hangar**: one place to equip, inspect and maintain your AI coding agents.
+
+### User-facing
+- **New name** — The window, tray, installer, Start menu and every screen say Agent Hangar. Your library, presets and settings stay where they were (`~/.skills-manager`), and the `skills-manager-cli` command is unchanged.
+- **Credit to the original project** — Settings shows that Agent Hangar is based on skills-manager by Tianliang Zhang (MIT License), with a link to it.
+- **Install note (Windows)** — Because the installed name changed, the installer adds Agent Hangar next to the old "skills-manager" entry. Uninstall the old entry once from Settings → Apps; your data is not affected.
+
+### Developer & Governance
+- **Following the original project** — `npm run upstream` lists new commits in xingkongliang/skills-manager and tests, without touching your files, whether each applies cleanly; `pick` and `skip` take or hide them. A weekly workflow reports what's new. See docs/UPSTREAM.md.
+
 ## [1.50.0] - 2026-11-27
 
 ### Release Overview

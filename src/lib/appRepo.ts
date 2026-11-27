@@ -8,3 +8,10 @@
 export const APP_REPO = "adham-2002/skills-manager";
 export const APP_REPO_URL = `https://github.com/${APP_REPO}`;
 export const APP_RELEASES_URL = `${APP_REPO_URL}/releases`;
+
+/**
+ * The open-source project this app was forked from (MIT). Credited on the
+ * Settings page; `npm run upstream` reports its new commits.
+ */
+export const UPSTREAM_REPO = "xingkongliang/skills-manager";
+export const UPSTREAM_REPO_URL = `https://github.com/${UPSTREAM_REPO}`;

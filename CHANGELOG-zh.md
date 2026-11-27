@@ -5,6 +5,19 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.0] - 2026-11-27
+
+### 发布概览
+- 应用更名为 **Agent Hangar**：一个地方装备、检查和维护你的 AI 编程 Agent。
+
+### 用户可见更新
+- **新名称** — 窗口、托盘、安装包、开始菜单和所有界面都显示 Agent Hangar。技能库、Preset 和设置仍保存在原位置（`~/.skills-manager`），`skills-manager-cli` 命令不变。
+- **致谢原项目** — 设置页注明 Agent Hangar 基于 Tianliang Zhang 的 skills-manager（MIT 许可证），并附链接。
+- **安装说明（Windows）** — 由于安装名称变化，安装程序会在旧的 “skills-manager” 旁新增 Agent Hangar。请在 设置 → 应用 中卸载旧条目一次；数据不受影响。
+
+### 开发者与治理更新
+- **跟进原项目** — `npm run upstream` 列出 xingkongliang/skills-manager 的新提交，并在不改动文件的情况下测试每个提交能否干净应用；`pick` 和 `skip` 用于引入或忽略。每周的工作流会报告新内容。详见 docs/UPSTREAM.md。
+
 ## [1.50.0] - 2026-11-27
 
 ### 发布概览

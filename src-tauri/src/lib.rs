@@ -218,12 +218,12 @@ fn format_status_line(data: &TrayMenuData) -> String {
 fn format_tooltip(data: &TrayMenuData) -> String {
     if data.update_count > 0 {
         format!(
-            "Skills Manager · {} skills · {} agents · {} updates",
+            "Agent Hangar · {} skills · {} agents · {} updates",
             data.total_skills, data.coding_agent_count, data.update_count
         )
     } else {
         format!(
-            "Skills Manager · {} skills · {} agents",
+            "Agent Hangar · {} skills · {} agents",
             data.total_skills, data.coding_agent_count
         )
     }
@@ -283,7 +283,7 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
 
     let menu = Menu::new(app)?;
 
-    let app_name = MenuItem::with_id(app, "tray-app-name", "Skills Manager", false, None::<&str>)?;
+    let app_name = MenuItem::with_id(app, "tray-app-name", "Agent Hangar", false, None::<&str>)?;
     menu.append(&app_name)?;
 
     let status_line = MenuItem::with_id(
@@ -346,7 +346,7 @@ fn build_tray_menu_from_data<R: tauri::Runtime>(
 
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
-    let show_item = MenuItem::with_id(app, "show", "Open Skills Manager", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app, "show", "Open Agent Hangar", true, None::<&str>)?;
     menu.append(&show_item)?;
 
     let check_label = if data.check_updates_running {
