@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.51.5] - 2026-11-28
+
+### 发布概览
+- Agent Hangar 拥有了自己的标志。
+
+### 用户可见更新
+- **新标志** — 三道拱门环绕一个 Agent：应用图标、开始菜单、任务栏、托盘、侧边栏和安装程序都改用 Agent Hangar 自己的标志，不再沿用原项目的图标。
+
 ## [1.51.4] - 2026-11-27
 
 ### 发布概览
