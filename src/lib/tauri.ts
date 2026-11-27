@@ -1137,12 +1137,6 @@ export interface MemoryReport {
 
 export const getAgentMemory = () => invoke<MemoryReport>("get_agent_memory");
 
-// ── Original project (skills-manager) updates ──
-export const getUpstreamSourceRepo = () => invoke<string | null>("get_upstream_source_repo");
-export const setUpstreamSourceRepo = (path: string) => invoke<void>("set_upstream_source_repo", { path });
-export const checkUpstream = (fetch: boolean) =>
-  invoke<import("./upstream").UpstreamReport>("check_upstream", { fetch });
-
 export const readAgentMemory = (slug: string, file: string) =>
   invoke<string>("read_agent_memory", { slug, file });
 

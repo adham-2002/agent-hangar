@@ -1,6 +1,6 @@
 ---
 name: agent-hangar
-description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants to turn work done in the session into a new skill, wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Also use it when the user mentions Agent Hangar, or, inside the Agent Hangar source repo, asks to check skills-manager (the original project) for updates to merge. Prefer this over direct agent-folder installs because Agent Hangar preserves source metadata, preset membership, updates, and cross-agent deployment state.
+description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants to turn work done in the session into a new skill, wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Also use it when the user mentions Agent Hangar, or, inside the Agent Hangar source repo, asks to check skills-manager (the original project) for features or fixes to add. Prefer this over direct agent-folder installs because Agent Hangar preserves source metadata, preset membership, updates, and cross-agent deployment state.
 ---
 
 ## Before doing anything
@@ -486,10 +486,14 @@ If it exits with code 3, follow the approval rule under **Plugins** before anyth
 
 Only when working **in the Agent Hangar source repository** (it has
 `scripts/upstream.mjs`) and the user asks to check skills-manager, the original
-project, for new features or fixes to merge: read
-[references/upstream-sync.md](references/upstream-sync.md) and follow it. That
-file covers the report, what to recommend, picking, resolving conflicts,
-testing and shipping. It is not part of managing a skill library.
+project, for something like "check the original project", "what's new in
+skills-manager" or "what can we add": read
+[references/upstream-sync.md](references/upstream-sync.md) and follow it.
+
+That guide pulls the original project's latest code and writes a full report:
+every new feature, grouped as safe to add, add with care, conflicts with
+Agent Hangar's own features, or skip. Code changes only after the user picks
+what to take. This is not part of managing a skill library.
 
 ## Pitfalls
 
