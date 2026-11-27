@@ -166,7 +166,7 @@ pub async fn check_app_update(
         let tag = resp["tag_name"]
             .as_str()
             .ok_or_else(|| AppError::network("No tag_name in response"))?;
-        let latest_version = tag.strip_prefix('v').unwrap_or(tag).to_string();
+        let latest_version = version_from_tag(tag);
         let release_url = resp["html_url"]
             .as_str()
             .map(str::to_string)
@@ -607,6 +607,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_labelled_release_tag_is_compared_by_its_version() {
+        assert_eq!(version_from_tag("v1.48.0"), "1.48.0");
+        assert_eq!(version_from_tag("fork-1.47.0"), "1.47.0");
+        assert_eq!(version_from_tag("skills-manager-2.0.0-beta.1"), "2.0.0-beta.1");
+        assert!(!version_gt(&version_from_tag("fork-1.47.0"), "1.48.0"));
+        assert!(version_gt(&version_from_tag("fork-1.49.0"), "1.48.0"));
+        assert!(version_gt(&version_from_tag("v1.48.1"), "1.48.0"));
+        assert!(!version_gt(&version_from_tag("v1.48.0"), "1.48.0"));
+    }
+
+    #[test]
     fn collapses_repeated_tray_lines_old_format() {
         let log = "\
 [2026-03-22][04:20:02][app_lib][INFO] Tray icon created
@@ -746,6 +757,18 @@ pub async fn hide_to_tray(
     #[cfg(not(target_os = "macos"))]
     let _ = app;
     Ok(())
+}
+
+/// The version a release tag names: `v1.48.0`, `fork-1.48.0` and
+/// `skills-manager-1.48.0` all give `1.48.0`. Everything before the first
+/// digit is a label, not part of the version; reading it as one made
+/// `fork-1.47.0` look newer than 1.48.0.
+fn version_from_tag(tag: &str) -> String {
+    let tag = tag.trim();
+    match tag.find(|c: char| c.is_ascii_digit()) {
+        Some(start) => tag[start..].to_string(),
+        None => tag.to_string(),
+    }
 }
 
 fn version_gt(a: &str, b: &str) -> bool {

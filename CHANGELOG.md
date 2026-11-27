@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.1] - 2026-11-27
+
+### Release Overview
+- Fixes a false "update available" notice.
+
+### User-facing
+- **No more false update** — Settings offered this fork's `fork-1.47.0` release as an update to 1.48.0. A label in front of a release's version number is now ignored when comparing versions, so only a genuinely newer release is offered.
+
 ## [1.48.0] - 2026-11-21
 
 ### Release Overview
