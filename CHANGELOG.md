@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.2] - 2026-11-27
+
+### Release Overview
+- Custom agent icons, safer installs and deletes, and fixes taken from skills-manager.
+
+### User-facing
+- **Icons for custom agents** — Pick an icon for an agent you added yourself; dark icons are inverted in the picker so they stay visible.
+- **Backup status** — "Backed up" now says when you last backed up, instead of "no snapshot yet" after an automatic backup.
+- **Safer installs and deletes** — skills.sh installs and recorded skill paths are kept inside your library, and a skill recorded outside it is never deleted from disk.
+- **Large skill updates** — The source diff preview stays fast however many files changed, and says when it shows only part of them.
+- **Presets and CLI** — Preset deployments and the CLI's install, update and git commands behave as documented.
+
 ## [1.51.1] - 2026-11-27
 
 ### Release Overview
