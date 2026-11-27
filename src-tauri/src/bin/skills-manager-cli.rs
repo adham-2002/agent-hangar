@@ -2246,7 +2246,7 @@ fn dirs_home() -> anyhow::Result<PathBuf> {
 // ── update / check ────────────────────────────────────────────────────────
 
 /// The reports go to stdout either way; a failure among them makes the command
-/// fail too (stderr envelope, exit 1), as the manage-skills contract promises.
+/// fail too (stderr envelope, exit 1), as the agent-hangar skill contract promises.
 /// The other skills' updates stay applied. A held-back update is not a failure.
 fn update_outcome(reports: &[UpdateReport]) -> anyhow::Result<()> {
     let failed = reports.iter().filter(|r| r.error.is_some()).count();

@@ -1,6 +1,6 @@
 ---
-name: manage-skills
-description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants to turn work done in the session into a new skill, wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Also use it when the user mentions Agent Hangar. Prefer this over direct agent-folder installs because Agent Hangar preserves source metadata, preset membership, updates, and cross-agent deployment state.
+name: agent-hangar
+description: Manage the user's shared agent-skill library and Claude Code plugins via skills-manager-cli — install, update, remove, deploy or undeploy skills per agent or into a project's own agent directories, manage presets, organize tags, search, adopt existing skills, and install, update, remove or turn on/off Claude Code plugins and their marketplaces. Use this whenever the user wants to turn work done in the session into a new skill, wants Claude Code, Codex, Cursor, or another agent to gain or lose a skill (globally or in one repo), wants to organize the central library, or asks what is installed or deployed. Also use it when the user mentions Agent Hangar, or, inside the Agent Hangar source repo, asks to check skills-manager (the original project) for updates to merge. Prefer this over direct agent-folder installs because Agent Hangar preserves source metadata, preset membership, updates, and cross-agent deployment state.
 ---
 
 ## Before doing anything
@@ -481,6 +481,15 @@ Report which skills actually refreshed (`refreshed: true` in the JSON) vs which 
 ```
 
 If it exits with code 3, follow the approval rule under **Plugins** before anything else. Report that the plugin is active in new Claude Code sessions.
+
+## Agent Hangar's own source: updates from skills-manager
+
+Only when working **in the Agent Hangar source repository** (it has
+`scripts/upstream.mjs`) and the user asks to check skills-manager, the original
+project, for new features or fixes to merge: read
+[references/upstream-sync.md](references/upstream-sync.md) and follow it. That
+file covers the report, what to recommend, picking, resolving conflicts,
+testing and shipping. It is not part of managing a skill library.
 
 ## Pitfalls
 

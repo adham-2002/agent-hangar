@@ -12,8 +12,10 @@ import { APP_REPO_URL } from "../lib/appRepo";
 const PROMPT_SETTING_KEY = "agent_control_setup_prompt";
 
 /** The library skill that teaches an agent to drive Skills Manager. */
-const SKILL_NAME = "manage-skills";
-const SKILL_SOURCE = `${APP_REPO_URL}/tree/main/skills/manage-skills`;
+const SKILL_NAME = "agent-hangar";
+/** Its name before the rename; a library that has it needs no prompt either. */
+const LEGACY_SKILL_NAME = "manage-skills";
+const SKILL_SOURCE = `${APP_REPO_URL}/tree/main/skills/agent-hangar`;
 
 /**
  * One-time pointer to a capability nothing else advertises: an agent can drive
@@ -39,7 +41,7 @@ export function AgentControlSetupCard() {
   const [busy, setBusy] = useState(false);
 
   const alreadyInstalled = useMemo(
-    () => managedSkills.some((skill) => skill.name === SKILL_NAME),
+    () => managedSkills.some((skill) => skill.name === SKILL_NAME || skill.name === LEGACY_SKILL_NAME),
     [managedSkills]
   );
 
