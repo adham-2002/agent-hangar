@@ -111,6 +111,7 @@
       "synced": "已备份",
       "syncedDesc": "最近可见快照：{{when}}。",
       "noSnapshot": "暂无快照",
+      "syncedAt": "最近备份：{{when}}。",
       "failed": "备份失败",
       "pendingSkills": "有 {{count}} 个技能的更改尚未备份。",
       "remoteOnly": "其他设备有更新",
