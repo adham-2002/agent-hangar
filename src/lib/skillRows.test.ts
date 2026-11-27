@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSkillRows, packCells, renderedSkillIds } from "./skillRows";
+import { buildSkillRows, INDIVIDUAL_KEY, packCells, renderedSkillIds } from "./skillRows";
 import { countHiddenSelected } from "./selectionVisibility";
 import type { SkillSourceGroup } from "./skillSource";
 import type { ManagedSkill } from "./tauri";
@@ -145,12 +145,42 @@ describe("packCells", () => {
 
   it("keeps a source of one skill a plain skill card", () => {
     const cells = packCells(build([single, repoB]));
-    expect(cells[0]).toEqual({ kind: "single", row: { kind: "skill", skill: single.skills[0] } });
-    expect(cells[1].kind).toBe("pack");
+    expect(cells[0].kind).toBe("pack");
+    expect(cells[1]).toEqual({ kind: "single", row: { kind: "skill", skill: single.skills[0] } });
   });
 
   it("leaves ungrouped skills as loose cards", () => {
     const rows = buildSkillRows({ groups: null, skills: [skill("x"), skill("y")], openBySource: {}, searching: false });
     expect(packCells(rows).map((c) => c.kind)).toEqual(["loose", "loose"]);
+  });
+});
+
+describe("packCells gathering and order", () => {
+  const solo = (key: string) => group(key, [`${key}-skill`]);
+  const ids = (rows: { skill: ManagedSkill }[]) => rows.map((r) => r.skill.id);
+  const individual = { label: "Individual skills", open: false, searching: false };
+
+  it("gathers two or more one-skill sources into one card, after the packs", () => {
+    const cells = packCells(build([solo("s1"), repoA, solo("s2")]), { individual });
+    expect(cells.map((c) => c.kind)).toEqual(["pack", "pack"]);
+    const last = cells[1];
+    if (last.kind !== "pack") throw new Error("pack expected");
+    expect(last.header.group.key).toBe(INDIVIDUAL_KEY);
+    expect(last.header.group.label).toBe("Individual skills");
+    expect(ids(last.visible)).toEqual(["s1-skill", "s2-skill"]);
+  });
+
+  it("keeps a lone one-skill source a plain card", () => {
+    const cells = packCells(build([solo("s1"), repoA]), { individual });
+    expect(cells.map((c) => c.kind)).toEqual(["pack", "single"]);
+  });
+
+  it("puts skills that need attention first inside a card", () => {
+    const cells = packCells(build([group("repo:z", ["z1", "z2", "z3"])]), {
+      priority: (s) => (s.id === "z3" ? 0 : 2),
+    });
+    const pack = cells[0];
+    if (pack.kind !== "pack") throw new Error("pack expected");
+    expect(ids(pack.visible)).toEqual(["z3", "z1", "z2"]);
   });
 });

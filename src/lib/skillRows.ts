@@ -66,28 +66,69 @@ export type PackCell =
   | { kind: "pack"; header: GroupRow; visible: SkillRow[]; hidden: number }
   | { kind: "loose"; row: SkillRow };
 
+/** Group key of the card that gathers sources holding a single skill. */
+export const INDIVIDUAL_KEY = "__individual__";
+
+export interface PackCellOptions {
+  preview?: number;
+  /**
+   * Gather the sources that hold one skill into one card with this label,
+   * when there are at least two of them. Without it each stays its own card.
+   */
+  individual?: { label: string; open: boolean; searching: boolean };
+  /** Lower comes first inside a card: skills that need attention lead. */
+  priority?: (skill: ManagedSkill) => number;
+}
+
 /**
  * The rows as grid cells: a source with several skills becomes one pack card
  * listing its skills (the first few while collapsed, all once opened or while
- * searching), and a source with one skill stays a plain skill card, since a
- * frame around a single skill adds nothing. Ungrouped rows stay loose cards.
+ * searching). Sources with a single skill are gathered into one "individual
+ * skills" card, so the grid holds one kind of card; a lone one stays a plain
+ * skill card. Ungrouped rows stay loose cards.
  */
-export function packCells(rows: SkillListRow[], preview = PACK_PREVIEW): PackCell[] {
+export function packCells(rows: SkillListRow[], options: PackCellOptions = {}): PackCell[] {
+  const preview = options.preview ?? PACK_PREVIEW;
+  const order = (skills: ManagedSkill[]) =>
+    options.priority
+      ? skills
+          .map((skill, index) => ({ skill, index, rank: options.priority!(skill) }))
+          .sort((a, b) => a.rank - b.rank || a.index - b.index)
+          .map((x) => x.skill)
+      : skills;
+  const toRows = (skills: ManagedSkill[]) => order(skills).map((skill): SkillRow => ({ kind: "skill", skill }));
+  const packOf = (header: GroupRow): PackCell => {
+    const skills = toRows(header.group.skills);
+    const visible = header.expanded ? skills : skills.slice(0, preview);
+    return { kind: "pack", header, visible, hidden: skills.length - visible.length };
+  };
+
   const grouped = rows.some((row) => row.kind === "group");
   const cells: PackCell[] = [];
+  const singles: GroupRow[] = [];
   for (const row of rows) {
     if (row.kind === "skill") {
       // Grouped, a source's skills are listed from its header's group.
       if (!grouped) cells.push({ kind: "loose", row });
       continue;
     }
-    const skills = row.group.skills.map((skill): SkillRow => ({ kind: "skill", skill }));
-    if (skills.length === 1) {
-      cells.push({ kind: "single", row: skills[0] });
-      continue;
-    }
-    const visible = row.expanded ? skills : skills.slice(0, preview);
-    cells.push({ kind: "pack", header: row, visible, hidden: skills.length - visible.length });
+    if (row.group.skills.length === 1) singles.push(row);
+    else cells.push(packOf(row));
+  }
+
+  if (options.individual && singles.length >= 2) {
+    const skills = singles.map((row) => row.group.skills[0]);
+    const { label, open, searching } = options.individual;
+    cells.push(
+      packOf({
+        kind: "group",
+        group: { key: INDIVIDUAL_KEY, label, kind: "individual", count: skills.length, skills } as unknown as GroupRow["group"],
+        expanded: searching || open,
+        collapsible: !searching,
+      }),
+    );
+  } else {
+    for (const row of singles) cells.push({ kind: "single", row: { kind: "skill", skill: row.group.skills[0] } });
   }
   return cells;
 }

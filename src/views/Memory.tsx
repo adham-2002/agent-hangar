@@ -225,7 +225,7 @@ export function Memory() {
                   relative(memory.modified),
                 ]
                   .filter(Boolean)
-                  .join(" Â· ")}
+                  .join(" · ")}
               </span>
             </span>
           </button>

@@ -26,6 +26,8 @@ import {
   Tag,
   Trash2,
   FilePlus,
+  AlertTriangle,
+  SlidersHorizontal,
 } from "lucide-react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -42,6 +44,10 @@ import { TagRenameDialog } from "../components/TagRenameDialog";
 import { SkillDetailPanel } from "../components/SkillDetailPanel";
 import { SkillEditorDialog, type SkillEditorMode } from "../components/SkillEditorDialog";
 import { PresetBudgetStrip } from "../components/PresetBudgetStrip";
+import { AgentSummaryButton } from "../components/AgentSummaryButton";
+import { Popover } from "../components/Popover";
+import { summarizeAgents } from "../lib/agentSummary";
+import { activeFilterChips, type FilterChip } from "../lib/filterChips";
 import { MultiSelectToolbar } from "../components/MultiSelectToolbar";
 import { BatchTagDialog } from "../components/BatchTagDialog";
 import { BatchSyncAgentDialog } from "../components/BatchSyncAgentDialog";
@@ -62,11 +68,12 @@ import type {
   ToolInfo,
   GitBackupStatus,
   SkillToolToggle,
+  SkillFinding,
 } from "../lib/tauri";
 import { getErrorMessage } from "../lib/error";
 import { normalizeSkillSearch, skillSearchMatches } from "../lib/skillSearch";
 import { countHiddenSelected, hiddenSelectionTexts } from "../lib/selectionVisibility";
-import { buildSkillRows, renderedSkillIds, type SkillListRow } from "../lib/skillRows";
+import { buildSkillRows, INDIVIDUAL_KEY, renderedSkillIds, type SkillListRow } from "../lib/skillRows";
 import { channelsForSkills } from "../lib/skillChannels";
 import { ChannelPills } from "../components/ChannelPills";
 import { SourcePicker } from "../components/SourcePicker";
@@ -383,6 +390,21 @@ export function MySkills() {
     if (viewedPreset) setFilterMode("all");
   };
 
+  const removeFilterChip = (chip: FilterChip) => {
+    if (chip.kind === "channel") setChannelFilters(toggleFilter(channelFilters, chip.value));
+    else if (chip.kind === "tag") setTagFilters(toggleFilter(tagFilters, chip.value));
+    else {
+      const next = new Set(sourceSelection);
+      next.delete(chip.value);
+      setSourceSelection(next);
+    }
+  };
+  const clearFilterChips = () => {
+    setChannelFilters(new Set());
+    setTagFilters(new Set());
+    setSourceSelection(new Set());
+  };
+
   const skillDisplayNames = useMemo(() => {
     const nameCounts = new Map<string, number>();
     for (const skill of skills) {
@@ -464,6 +486,17 @@ export function MySkills() {
     };
   }, [skills, skillDisplayNames, normalizedQuery, channelFilters, tagFilters, sourceSelection, filterMode, viewedPreset, presetSkillOrder]);
 
+  const filterChips = useMemo(
+    () =>
+      activeFilterChips({
+        channels: channelFilters,
+        sources: sourceSelection,
+        tags: tagFilters,
+        sourceOptions,
+        t,
+      }),
+    [channelFilters, sourceSelection, tagFilters, sourceOptions, t],
+  );
   // Without a source selection the groups from above already describe
   // `filtered`; only a narrowing selection forces a rebuild. That rebuild must
   // keep the labels of the pre-selection groups: path labels are
@@ -1073,6 +1106,60 @@ export function MySkills() {
     }
   };
 
+  // Quality findings, for the problem markers on pack cards. Optional: the
+  // library never waits on it.
+  const [qualityById, setQualityById] = useState<Map<string, SkillFinding[]>>(new Map());
+  useEffect(() => {
+    let live = true;
+    api
+      .checkLibraryQuality()
+      .then((rows) => {
+        if (live) setQualityById(new Map(rows.map((r) => [r.skill_id, r.findings])));
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [skills]);
+  const skillProblems = useCallback(
+    (skill: ManagedSkill) => (qualityById.get(skill.id) ?? []).filter((f) => f.severity !== "info"),
+    [qualityById],
+  );
+  const skillHasUpdate = useCallback(
+    (skill: ManagedSkill) => skill.update_status === "update_available" && canRefresh(skill),
+    [],
+  );
+
+  // A pack's preset switch: all on when anything is off, otherwise all off.
+  const [packToggling, setPackToggling] = useState<string | null>(null);
+  const handlePackPresetToggle = async (groupKey: string, packSkills: ManagedSkill[]) => {
+    if (!viewedPreset || packToggling) return;
+    const enabling = packSkills.some((s) => !s.preset_ids.includes(viewedPreset.id));
+    const targets = packSkills.filter((s) => s.preset_ids.includes(viewedPreset.id) !== enabling);
+    setPackToggling(groupKey);
+    let failed = 0;
+    try {
+      for (const skill of targets) {
+        try {
+          if (enabling) await api.addSkillToPreset(skill.id, viewedPreset.id);
+          else await api.removeSkillFromPreset(skill.id, viewedPreset.id);
+        } catch {
+          failed++;
+        }
+      }
+      const done = targets.length - failed;
+      if (done > 0) {
+        toast.success(
+          enabling ? t("mySkills.batchEnabled", { count: done }) : t("mySkills.batchDisabled", { count: done }),
+        );
+      }
+      if (failed > 0) toast.error(t("mySkills.batchToggleFailed", { count: failed }));
+      await Promise.all([refreshManagedSkills(), refreshPresets()]);
+    } finally {
+      setPackToggling(null);
+    }
+  };
+
   const handleTogglePreset = async (skill: ManagedSkill) => {
     if (!viewedPreset) return;
     const enabledInPreset = skill.preset_ids.includes(viewedPreset.id);
@@ -1467,6 +1554,68 @@ export function MySkills() {
             />
           </div>
 
+          <Popover
+            label={t("mySkills.filtersPanel.title")}
+            panelClassName="w-80"
+            triggerClassName={cn(
+              "app-toolbar-button app-toolbar-button-secondary",
+              filterChips.length > 0 && "border-accent/40 text-accent-light"
+            )}
+            trigger={
+              <>
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {t("mySkills.filtersPanel.title")}
+                {filterChips.length > 0 ? (
+                  <span className="rounded-full bg-accent px-1.5 text-[11px] tabular-nums text-white">
+                    {filterChips.length}
+                  </span>
+                ) : null}
+              </>
+            }
+          >
+            {() => (
+              <div className="flex flex-col gap-3 p-1">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-medium text-muted">{t("mySkills.filtersPanel.type")}</span>
+                  <ChannelPills
+                    channels={channels}
+                    selected={channelFilters}
+                    onToggle={(channel) => setChannelFilters(toggleFilter(channelFilters, channel))}
+                    className="gap-1"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-medium text-muted">{t("mySkills.filtersPanel.source")}</span>
+                  <SourcePicker
+                    candidates={sourceOptions}
+                    selected={sourceSelection}
+                    onChange={setSourceSelection}
+                  />
+                </div>
+                {(allTags.length > 0 || hasUntaggedSkill) && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-medium text-muted">{t("mySkills.tags.filter")}</span>
+                    <TagFilterPills
+                      tags={allTags}
+                      selected={tagFilters}
+                      onToggle={(tag) => setTagFilters(toggleFilter(tagFilters, tag))}
+                      onClear={() => setTagFilters(new Set())}
+                      hasUntagged={hasUntaggedSkill}
+                      onTagContextMenu={(tag, event) =>
+                        setTagMenu({
+                          tag,
+                          x: Math.min(event.clientX, window.innerWidth - 160),
+                          y: Math.min(event.clientY, window.innerHeight - 90),
+                        })
+                      }
+                      className="gap-1"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </Popover>
+
           {viewedPreset && (
             <div className="app-segmented app-toolbar-segmented shrink-0">
               {(["all", "enabled", "available"] as const).map((mode) => (
@@ -1493,37 +1642,68 @@ export function MySkills() {
               const mode = getGitToolbarMode();
               const meta = getGitStatusMeta(mode);
               const Icon = meta.icon;
+              const backupNeedsYou = mode === "needs_fix" || mode === "pending_changes";
+              const busy = checkingAll || batchUpdating;
+              const item =
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-surface-hover disabled:opacity-50";
               return (
-                <button
-                  type="button"
-                  onClick={() => navigate("/backup")}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-md px-3 py-2 text-[13px] font-medium transition-colors hover:bg-surface-hover hover:text-secondary",
-                    meta.className
-                  )}
-                  title={t("sidebar.backup")}
+                <Popover
+                  label={t("mySkills.maintenance.title")}
+                  align="right"
+                  panelClassName="w-64"
+                  triggerClassName="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-surface-hover hover:text-secondary"
+                  trigger={
+                    <>
+                      <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
+                      {t("mySkills.maintenance.title")}
+                      {availableUpdateCount > 0 ? (
+                        <span className="rounded-full bg-accent px-1.5 text-[11px] tabular-nums text-white">
+                          {availableUpdateCount}
+                        </span>
+                      ) : backupNeedsYou ? (
+                        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      ) : null}
+                    </>
+                  }
                 >
-                  <Icon className={cn("h-3.5 w-3.5", meta.iconClassName)} />
-                  {meta.label}
-                </button>
+                  {(close) => (
+                    <div className="flex flex-col">
+                      {availableUpdateCount > 0 ? (
+                        <button
+                          type="button"
+                          disabled={batchUpdating}
+                          onClick={() => { close(); void handleUpdateAvailableSkills(); }}
+                          className={cn(item, "font-medium text-accent-light")}
+                        >
+                          <RotateCcw className={cn("h-3.5 w-3.5", batchUpdating && "animate-spin")} />
+                          {t("mySkills.updateActions.updateAvailable", { count: availableUpdateCount })}
+                        </button>
+                      ) : (
+                        <p className="px-2 py-1.5 text-[12px] text-muted">{t("mySkills.maintenance.upToDate")}</p>
+                      )}
+                      <button
+                        type="button"
+                        disabled={checkingAll}
+                        onClick={() => { close(); void handleCheckAllUpdates(); }}
+                        className={cn(item, "text-secondary")}
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", checkingAll && "animate-spin")} />
+                        {t("mySkills.updateActions.checkAll")}
+                      </button>
+                      <span aria-hidden className="my-1 h-px bg-border-subtle" />
+                      <button
+                        type="button"
+                        onClick={() => { close(); navigate("/backup"); }}
+                        className={cn(item, meta.className)}
+                      >
+                        <Icon className={cn("h-3.5 w-3.5", meta.iconClassName)} />
+                        {t("mySkills.maintenance.backup", { status: meta.label })}
+                      </button>
+                    </div>
+                  )}
+                </Popover>
               );
             })()}
-            <button
-              onClick={handleCheckAllUpdates}
-              disabled={checkingAll}
-              className="ml-2 mr-2 inline-flex items-center gap-1 rounded-md border-l border-border-subtle pl-4 pr-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-surface-hover hover:text-secondary disabled:opacity-50"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", checkingAll && "animate-spin")} />
-              {t("mySkills.updateActions.checkAll")}
-            </button>
-            <button
-              onClick={handleUpdateAvailableSkills}
-              disabled={batchUpdating || availableUpdateCount === 0}
-              className="mr-2 inline-flex items-center gap-1 rounded-md px-3 py-2 text-[13px] font-medium text-accent-light transition-colors hover:bg-accent-bg disabled:opacity-50"
-            >
-              <RotateCcw className={cn("h-3.5 w-3.5", batchUpdating && "animate-spin")} />
-              {t("mySkills.updateActions.updateAvailable", { count: availableUpdateCount })}
-            </button>
             <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 self-center bg-border-subtle" />
             <button
               onClick={() => setViewMode("grid")}
@@ -1576,39 +1756,29 @@ export function MySkills() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 px-1 -mt-2 -mb-3">
-        <ChannelPills
-          channels={channels}
-          selected={channelFilters}
-          onToggle={(channel) => setChannelFilters(toggleFilter(channelFilters, channel))}
-          className="gap-1"
-        />
-        <SourcePicker
-          candidates={sourceOptions}
-          selected={sourceSelection}
-          onChange={setSourceSelection}
-        />
-        {(allTags.length > 0 || hasUntaggedSkill) && (
-          <>
-            <span className="mx-0.5 h-3 w-px bg-border-subtle" />
-            <TagFilterPills
-              tags={allTags}
-              selected={tagFilters}
-              onToggle={(tag) => setTagFilters(toggleFilter(tagFilters, tag))}
-              onClear={() => setTagFilters(new Set())}
-              hasUntagged={hasUntaggedSkill}
-              onTagContextMenu={(tag, event) =>
-                setTagMenu({
-                  tag,
-                  x: Math.min(event.clientX, window.innerWidth - 160),
-                  y: Math.min(event.clientY, window.innerHeight - 90),
-                })
-              }
-              className="gap-1"
-            />
-          </>
-        )}
-      </div>
+      {filterChips.length > 0 && (
+        <div className="-mt-2 -mb-3 flex flex-wrap items-center gap-1 px-1" aria-label={t("mySkills.filtersPanel.active")}>
+          {filterChips.map((chip) => (
+            <button
+              key={`${chip.kind}:${chip.value}`}
+              type="button"
+              onClick={() => removeFilterChip(chip)}
+              className="inline-flex items-center gap-1 rounded-full bg-accent-bg px-2 py-0.5 text-[12px] font-medium text-accent-light transition-colors hover:bg-accent/20"
+              title={t("mySkills.filtersPanel.remove", { name: chip.label })}
+            >
+              {chip.label}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={clearFilterChips}
+            className="rounded-full px-2 py-0.5 text-[12px] text-muted transition-colors hover:text-secondary"
+          >
+            {t("mySkills.filtersPanel.clear")}
+          </button>
+        </div>
+      )}
 
       {isMultiSelect && (
         <MultiSelectToolbar
@@ -1736,6 +1906,15 @@ export function MySkills() {
             rows={sourceRows}
             grid={viewMode === "grid"}
             onToggleGroup={(key, open) => setGroupOpen((prev) => ({ ...prev, [key]: open }))}
+            cellOptions={{
+              individual: {
+                label: t("mySkills.packCard.individual"),
+                open: groupOpen[INDIVIDUAL_KEY] ?? false,
+                searching,
+              },
+              // Skills that need attention lead their card.
+              priority: (s) => (skillProblems(s).length > 0 ? 0 : skillHasUpdate(s) ? 1 : 2),
+            }}
             renderRow={(row, place) => {
             if (row.kind === "group") {
               const label = row.group.label || t("mySkills.sourcePicker.unknownSource");
@@ -1770,6 +1949,20 @@ export function MySkills() {
                     void handleTogglePackTarget(row.group.key, label, row.group.skills, toolKey)
                   }
                   pendingAgentKey={togglingPack?.group === row.group.key ? togglingPack.tool : null}
+                  health={{
+                    updates: row.group.skills.filter(skillHasUpdate).length,
+                    issues: row.group.skills.filter((s) => skillProblems(s).length > 0).length,
+                  }}
+                  presetProgress={
+                    viewedPreset
+                      ? {
+                          enabled: row.group.skills.filter((s) => s.preset_ids.includes(viewedPreset.id)).length,
+                          total: row.group.skills.length,
+                          busy: packToggling === row.group.key,
+                          onToggle: () => void handlePackPresetToggle(row.group.key, row.group.skills),
+                        }
+                      : null
+                  }
                   agentsDisabled={!!togglingPack || !!togglingTarget}
                   actions={[
                     {
@@ -1862,6 +2055,20 @@ export function MySkills() {
                   <span className="min-w-0 flex-1 truncate text-[13px] text-secondary group-hover:text-primary">
                     {displayName}
                   </span>
+                  {skillProblems(skill).length > 0 && (
+                    <span
+                      className="shrink-0 text-rose-500"
+                      title={String(
+                        t(`quality.codes.${skillProblems(skill)[0].code}`, {
+                          ...skillProblems(skill)[0].params,
+                          defaultValue: skillProblems(skill)[0].message,
+                        }),
+                      )}
+                      aria-label={t("mySkills.packCard.issues", { count: skillProblems(skill).length })}
+                    >
+                      <AlertTriangle className="h-3 w-3" />
+                    </span>
+                  )}
                   {conflictIds.has(skill.id) && (
                     <span
                       className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
@@ -2154,18 +2361,20 @@ export function MySkills() {
                         </>
                       )}
                     </div>
-                    <SyncDots
-                      className="shrink-0"
-                      skill={skill}
-                      tools={tools}
-                      limit={6}
-                      onToggle={
-                        isMultiSelect
-                          ? undefined
-                          : (tool, enabled) => handleToggleSkillTarget(skill, tool, enabled)
-                      }
-                      pendingKey={togglingTarget?.skillId === skill.id ? togglingTarget.tool : null}
-                    />
+                    <AgentSummaryButton summary={summarizeAgents([skill], tools)} className="shrink-0">
+                      <SyncDots
+                        className="shrink-0"
+                        skill={skill}
+                        tools={tools}
+                        limit={6}
+                        onToggle={
+                          isMultiSelect
+                            ? undefined
+                            : (tool, enabled) => handleToggleSkillTarget(skill, tool, enabled)
+                        }
+                        pendingKey={togglingTarget?.skillId === skill.id ? togglingTarget.tool : null}
+                      />
+                    </AgentSummaryButton>
                   </div>
                 </div>
                 )}

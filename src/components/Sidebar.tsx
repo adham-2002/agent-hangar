@@ -31,7 +31,15 @@ import { AddProjectDialog } from "./AddProjectDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { AgentIcon } from "./AgentIcon";
 import * as api from "../lib/tauri";
-import type { SyncHealth, ToolCategory, ToolInfo } from "../lib/tauri";
+import type { PresetSummary, SyncHealth, ToolCategory, ToolInfo } from "../lib/tauri";
+import { formatTokens } from "../lib/insights";
+import { presetLoad, type PresetLoad } from "../lib/presetLoad";
+
+const LOAD_DOT: Record<PresetLoad, string> = {
+  light: "bg-emerald-500",
+  medium: "bg-amber-500",
+  heavy: "bg-rose-500",
+};
 import { getPresetIconOption } from "../lib/presetIcons";
 import { IS_MACOS } from "../lib/platform";
 
@@ -53,6 +61,8 @@ export function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  // Each preset's cost and clashes, for the dot beside its count.
+  const [presetSummaries, setPresetSummaries] = useState<Record<string, PresetSummary>>({});
   const { presets, setViewedPresetId, closeSkillDetail, refreshPresets, refreshManagedSkills, projects, refreshProjects, tools, managedSkills, appUpdate } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
@@ -90,6 +100,24 @@ export function Sidebar() {
   }, [installedTools, managedSkills]);
 
   useEffect(() => { setOrderedPresets(presets); }, [presets]);
+  useEffect(() => {
+    let live = true;
+    Promise.all(
+      presets
+        .filter((p) => p.skill_count > 0)
+        .map((p) =>
+          api
+            .getPresetSummary(p.id)
+            .then((summary) => [p.id, summary] as const)
+            .catch(() => null),
+        ),
+    ).then((entries) => {
+      if (live) setPresetSummaries(Object.fromEntries(entries.filter((e) => e !== null)));
+    });
+    return () => {
+      live = false;
+    };
+  }, [presets, managedSkills]);
   useEffect(() => { setOrderedProjects(projects); }, [projects]);
   useEffect(() => {
     const stored = localStorage.getItem("skills-manager:tool-order");
@@ -344,7 +372,7 @@ export function Sidebar() {
                                     )}
                                   />
                                   <span className="flex-1 truncate">{tool.display_name}</span>
-                                  <span className="ml-auto flex h-[18px] w-[32px] shrink-0 items-center justify-end group-hover:hidden">
+                                  <span className="ml-auto flex h-[18px] min-w-[32px] shrink-0 items-center justify-end group-hover:hidden">
                                     {skillCount > 0 && (
                                       <span className={cn(
                                         "min-w-[18px] rounded-full px-1.5 text-center text-[12px] font-medium leading-[18px] tabular-nums",
@@ -489,7 +517,21 @@ export function Sidebar() {
                                     <PresetIcon className="h-3 w-3" />
                                   </span>
                                   <span className="flex-1 truncate">{preset.name}</span>
-                                  <span className="ml-auto flex h-[18px] w-[32px] shrink-0 items-center justify-end group-hover:hidden">
+                                  <span className="ml-auto flex h-[18px] min-w-[32px] shrink-0 items-center justify-end group-hover:hidden">
+                                    {preset.skill_count > 0 && presetSummaries[preset.id] && (
+                                      <span
+                                        aria-hidden
+                                        title={t("sidebar.presetLoad", {
+                                          tokens: formatTokens(presetSummaries[preset.id].always_on),
+                                          clashes: presetSummaries[preset.id].clashes,
+                                        })}
+                                        className={cn(
+                                          "mr-1 h-1.5 w-1.5 shrink-0 rounded-full",
+                                          LOAD_DOT[presetLoad(presetSummaries[preset.id].always_on)],
+                                          presetSummaries[preset.id].clashes > 0 && "ring-2 ring-amber-500/40"
+                                        )}
+                                      />
+                                    )}
                                     {preset.skill_count > 0 && (
                                       <span
                                         className={cn(

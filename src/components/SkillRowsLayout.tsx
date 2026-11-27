@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { PACK_PREVIEW, packCells, type SkillListRow } from "../lib/skillRows";
+import { PACK_PREVIEW, packCells, type PackCellOptions, type SkillListRow } from "../lib/skillRows";
 
 /**
  * Where a row is drawn: a row of the list, a card of the grid, the header of
@@ -15,6 +15,8 @@ interface Props {
   renderRow: (row: SkillListRow, place: RowPlace) => ReactNode;
   /** Open or fold a pack card. */
   onToggleGroup: (groupKey: string, open: boolean) => void;
+  /** How the grid gathers and orders cards; see `packCells`. */
+  cellOptions?: PackCellOptions;
 }
 
 /**
@@ -22,7 +24,7 @@ interface Props {
  * shows each pack as one card that lists its skills, so a pack reads as one
  * thing; a source with a single skill is a plain skill card.
  */
-export function SkillRowsLayout({ rows, grid, renderRow, onToggleGroup }: Props) {
+export function SkillRowsLayout({ rows, grid, renderRow, onToggleGroup, cellOptions }: Props) {
   const { t } = useTranslation();
   if (!grid) {
     return <div className="flex flex-col gap-0.5 pb-8">{rows.map((row) => renderRow(row, "list"))}</div>;
@@ -30,7 +32,7 @@ export function SkillRowsLayout({ rows, grid, renderRow, onToggleGroup }: Props)
 
   return (
     <div className="grid grid-cols-2 items-start gap-3 pb-8 lg:grid-cols-3">
-      {packCells(rows).map((cell) => {
+      {packCells(rows, cellOptions).map((cell) => {
         if (cell.kind !== "pack") return renderRow(cell.row, "card");
         const { header, visible, hidden } = cell;
         return (
