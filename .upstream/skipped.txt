@@ -1,0 +1,2 @@
+# Upstream commits this fork chose not to take: <sha> <reason>
+4186e7f556e4011e352db077b1b1e75c368ef4e9 Agent Hangar has its own Library and detail design
