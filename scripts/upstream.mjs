@@ -7,7 +7,7 @@
 //   npm run upstream -- pick <sha>...     cherry-pick commits onto this branch
 //   npm run upstream -- skip <sha> <why>  stop listing a commit you don't want
 //
-// Report flags: --markdown (for the GitHub issue), --no-fetch, --all (include
+// Report flags: --markdown (for the GitHub issue), --json (for the app), --no-fetch, --all (include
 // commits suggested to skip).
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -154,6 +154,32 @@ function report(flags) {
   const { base, commits } = collect({ all: flags.has("--all") });
   const useful = commits.filter((c) => c.trial);
   const skips = commits.filter((c) => !c.trial);
+  if (flags.has("--json")) {
+    // Read by the app's "Original project" page (commands/upstream.rs).
+    const state = (c) => (!c.trial ? "suggest_skip" : c.trial.clean ? "clean" : c.afterEarlier ? "after_earlier" : "conflicts");
+    const head = git(["log", "-1", "--format=%H%x00%s%x00%as", BRANCH]).split("\x00");
+    console.log(
+      JSON.stringify({
+        fork_point: base,
+        branch: git(["rev-parse", "--abbrev-ref", "HEAD"]),
+        upstream_head: { sha: head[0], subject: head[1], date: head[2] },
+        checked_at: new Date().toISOString(),
+        skipped: [...readSkipped()].map(([sha, reason]) => ({ sha, reason })),
+        commits: commits.map((c) => ({
+          sha: c.sha,
+          subject: c.subject,
+          date: c.date,
+          kind: c.kind,
+          files: c.files,
+          touches_your_files: c.overlap,
+          state: state(c),
+          conflicts: c.trial && !c.trial.clean && !c.afterEarlier ? c.trial.conflicts : [],
+          hint: c.hint,
+        })),
+      }),
+    );
+    return;
+  }
   if (flags.has("--markdown")) {
     const lines = [
       `${useful.length} upstream commit(s) not yet in this fork (fork point \`${base.slice(0, 7)}\`).`,

@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Agent Hangar",
   "mainBinaryName": "skills-manager",
-  "version": "1.51.2",
+  "version": "1.51.3",
   "identifier": "com.agentskills.desktop",
   "build": {
     "frontendDist": "../dist",
