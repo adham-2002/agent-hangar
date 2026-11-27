@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/agent-hangar-icon-dark.png" />
+    <img src="assets/brand/agent-hangar-icon-light.png" width="96" alt="Agent Hangar logo" />
+  </picture>
+</p>
+
 <h1 align="center">Agent Hangar</h1>
 
 <p align="center">
