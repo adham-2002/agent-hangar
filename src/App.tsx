@@ -18,6 +18,7 @@ import { Backup } from "./views/Backup";
 import { Plugins } from "./views/Plugins";
 import { Insights } from "./views/Insights";
 import { Memory } from "./views/Memory";
+import { InsightsProvider } from "./context/InsightsContext";
 
 function ThemedToaster() {
   const { resolvedTheme } = useThemeContext();
@@ -41,6 +42,7 @@ function App() {
     <ThemeProvider>
       <AppProvider>
         <BrowserRouter>
+          <InsightsProvider>
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
@@ -62,6 +64,7 @@ function App() {
           <CloseActionGuard />
           <FirstRunRestoreDialog />
           <WhatsNewOnUpdate />
+          </InsightsProvider>
         </BrowserRouter>
         <ThemedToaster />
       </AppProvider>

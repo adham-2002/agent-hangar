@@ -17,7 +17,8 @@
     "projects": "Project Workspaces",
     "addProject": "Link Project",
     "settings": "Settings",
-    "presetLoad": "About {{tokens}} tokens every session · {{clashes}} clashes"
+    "presetLoad": "About {{tokens}} tokens every session · {{clashes}} clashes",
+    "insightsTodo": "{{count}} things worth doing in Insights"
   },
   "help": {
     "eyebrow": "Guide",
@@ -535,7 +536,11 @@
       "enabledOf": "{{enabled}}/{{total}}",
       "enableAll": "Enable the whole pack in this preset",
       "disableAll": "Disable the whole pack in this preset",
-      "individual": "Individual skills"
+      "individual": "Individual skills",
+      "unusedTag": "unused",
+      "unusedHint": "Claude Code loads it but hasn't used it in 30 days",
+      "unused_one": "{{count}} unused",
+      "unused_other": "{{count}} unused"
     },
     "agents": {
       "all": "All agents",
@@ -1415,7 +1420,8 @@
       "none_other": "No problems found in your {{count}} skills.",
       "tips_one": "{{count}} skill with tips",
       "tips_other": "{{count}} skills with tips",
-      "edit": "Edit"
+      "edit": "Edit",
+      "showAll": "Show all {{count}}"
     },
     "memoryNote": "Claude Code also loads your instructions and memory: {{global}} from the global CLAUDE.md in every session, and up to {{project}} more in a project.",
     "memoryLink": "Review memory",
@@ -1437,6 +1443,77 @@
       "open": "Open preset",
       "strip": "≈{{tokens}} tokens every session",
       "details": "Details"
+    },
+    "views": {
+      "label": "Insights view",
+      "inbox": "Inbox",
+      "map": "Map",
+      "details": "Details"
+    },
+    "tabs": {
+      "label": "Insights sections",
+      "budget": "Budget",
+      "budgetSub": "{{agent}}, every session",
+      "presets": "Presets",
+      "presetsSub": "{{heavy}} heavy · {{clashes}} with clashes",
+      "presetsOk": "All light, no clashes",
+      "cleanup": "Clean up",
+      "cleanupSub": "saves {{tokens}} tokens per session",
+      "cleanupEarly": "needs {{days}} days of history",
+      "cleanupOk": "nothing idle",
+      "quality": "Quality",
+      "qualitySub": "skills with problems",
+      "qualityOk": "all clear"
+    },
+    "inbox": {
+      "title": "Things worth doing",
+      "allGood": "All good",
+      "allGoodBody": "Nothing needs you. {{agent}} loads {{tokens}} tokens into every session.",
+      "allGoodEmpty": "Nothing needs you.",
+      "seeMap": "See what each agent loads",
+      "summary_one": "{{count}} thing worth doing",
+      "summary_other": "{{count}} things worth doing",
+      "summarySaves_one": "{{count}} thing worth doing · saves {{tokens}} tokens per session",
+      "summarySaves_other": "{{count}} things worth doing · saves {{tokens}} tokens per session",
+      "saves": "saves {{tokens}} tokens per session",
+      "weighs": "{{tokens}} tokens every session",
+      "more": "+{{count}} more",
+      "review": "Review",
+      "removeAll": "Remove all from Claude Code",
+      "openPreset": "Open preset",
+      "inDetails": "Compare presets",
+      "kind": {
+        "unused_one": "{{count}} skill unused for 30 days",
+        "unused_other": "{{count}} skills unused for 30 days",
+        "projectOnly_one": "{{count}} skill only used in one project",
+        "projectOnly_other": "{{count}} skills only used in one project",
+        "heavyPreset": "{{preset}} preset is heavy",
+        "presetClash": "Skills clash in {{preset}}",
+        "quality_one": "{{count}} skill agents may not pick",
+        "quality_other": "{{count}} skills agents may not pick"
+      },
+      "why": {
+        "heavyPreset": "{{count}} skills · {{clashes}} clash · trim the ones you don't need",
+        "presetClash": "{{clashes}} skills overlap, so the agent may pick the wrong one",
+        "heavyPresetNoClash": "{{count}} skills · trim the ones you don't need"
+      }
+    },
+    "map": {
+      "title": "Context map",
+      "hint": "Everything {{agent}} loads into every session: {{tokens}} tokens. Each block is a pack, sized by its tokens.",
+      "legend": "Faded: unused for 30 days · ⚠: has problems · click a block to act on it",
+      "unusedCount_one": "{{count}} unused",
+      "unusedCount_other": "{{count}} unused",
+      "unused": "unused",
+      "problem": "problem",
+      "turnOff": "Turn off plugin",
+      "remove": "Remove from {{agent}}",
+      "pick": "Click a block to see what is in it.",
+      "removed": "Removed {{name}}",
+      "removeFailed": "Couldn't remove it",
+      "confirmTitle": "Remove {{name}}?",
+      "confirmMessage": "It stays in your library; only this agent stops loading it. You can deploy it again any time.",
+      "confirm": "Remove"
     }
   },
   "authoring": {
