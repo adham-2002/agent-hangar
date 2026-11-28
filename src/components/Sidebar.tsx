@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "../utils";
 import { useApp } from "../context/AppContext";
+import { useOptionalInsights } from "../context/InsightsContext";
 import { CreatePresetDialog } from "./CreatePresetDialog";
 import { RenamePresetDialog } from "./RenamePresetDialog";
 import { AddProjectDialog } from "./AddProjectDialog";
@@ -196,6 +197,9 @@ export function Sidebar() {
       localStorage.setItem("skills-manager:tool-order", JSON.stringify(reordered.map((t) => t.key)));
     }
   };
+
+  // Things worth doing, from the Insights inbox; the same count shows there.
+  const insightsTodo = useOptionalInsights()?.actions.length ?? 0;
 
   const NAV_ITEMS = [
     { name: t("sidebar.dashboard"), path: "/", icon: LayoutDashboard },
@@ -452,6 +456,14 @@ export function Sidebar() {
               >
                 <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-accent" : "text-muted")} />
                 {item.name}
+                {item.path === "/insights" && insightsTodo > 0 ? (
+                  <span
+                    className="ml-auto rounded-full bg-amber-500/15 px-1.5 text-[11px] font-medium tabular-nums text-amber-700 dark:text-amber-300"
+                    title={t("sidebar.insightsTodo", { count: insightsTodo })}
+                  >
+                    {insightsTodo}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

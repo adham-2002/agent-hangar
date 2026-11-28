@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, mount } from "../test-utils/mount";
 import { MemoryRouter } from "react-router-dom";
 import { Insights } from "./Insights";
+import { InsightsProvider } from "../context/InsightsContext";
 import type { ManagedSkill, ToolInfo } from "../lib/tauri";
 
 const NOW_S = Math.floor(Date.now() / 1000);
@@ -111,12 +112,19 @@ beforeEach(() => {
   api.checkPresetQuality.mockResolvedValue([]);
   app.presets = [];
 });
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
-async function render() {
+const DETAILS = (tab: string) => `/insights?view=details&tab=${tab}`;
+
+async function render(path = DETAILS("budget")) {
   const c = mount(
-    <MemoryRouter>
-      <Insights />
+    <MemoryRouter initialEntries={[path]}>
+      <InsightsProvider>
+        <Insights />
+      </InsightsProvider>
     </MemoryRouter>,
   );
   for (let i = 0; i < 4; i++) await flush();
@@ -131,7 +139,7 @@ describe("Insights", () => {
   });
 
   it("lists the idle skill as unused and the used one as most used", async () => {
-    const c = await render();
+    const c = await render(DETAILS("cleanup"));
     const unused = c.querySelector('[aria-label="insights.unused.title"]')!;
     expect(unused.textContent).toContain("idle");
     expect(unused.textContent).not.toContain("used ");
@@ -140,7 +148,7 @@ describe("Insights", () => {
   });
 
   it("cleans up only after confirmation, removing the skill from Claude Code", async () => {
-    const c = await render();
+    const c = await render(DETAILS("cleanup"));
     const box = c.querySelector('[aria-label="insights.unused.title"] input[type="checkbox"]') as HTMLInputElement;
     await act(async () => box.click());
     await act(async () => button("insights.unused.cleanUp").click());
@@ -160,7 +168,7 @@ describe("Insights", () => {
         { name: "used", invoked: 5, failed: 0, typed: 0, last_30_days: 4, last_used: NOW_S - DAY, projects: ["/work/shop/web"] },
       ],
     });
-    const c = await render();
+    const c = await render(DETAILS("cleanup"));
     const section = c.querySelector('[aria-label="insights.projectOnly.title"]')!;
     expect(section.textContent).toContain("used");
     await act(async () => button("insights.projectOnly.move").click());
@@ -188,7 +196,7 @@ describe("Insights", () => {
       ],
     });
     api.exportSkillToProject.mockRejectedValue(new Error("conflict"));
-    await render();
+    await render(DETAILS("cleanup"));
     await act(async () => button("insights.projectOnly.move").click());
     const confirm = [...document.body.querySelectorAll("button")].filter((b) =>
       b.textContent?.includes("insights.projectOnly.move"),
@@ -204,7 +212,7 @@ describe("Insights", () => {
       { skill_id: "idle", findings: [{ code: "description_missing", severity: "error", message: "m", params: {} }] },
       { skill_id: "used", findings: [{ code: "description_no_when", severity: "info", message: "m", params: {} }] },
     ]);
-    const c = await render();
+    const c = await render(DETAILS("quality"));
     const section = c.querySelector('[aria-label="insights.quality.title"]')!;
     expect(section.textContent).toContain("idle");
     expect(section.textContent).toContain("quality.codes.description_missing");
@@ -230,7 +238,7 @@ describe("Insights", () => {
         ],
       },
     ]);
-    const c = await render();
+    const c = await render(DETAILS("presets"));
     const section = c.querySelector('[aria-label="insights.presets.title"]')!;
     expect(section.textContent).toContain("Frontend");
     expect(section.textContent).toContain("insights.budget.total:200");
@@ -240,8 +248,47 @@ describe("Insights", () => {
 
   it("does not call anything unused while the sessions cover too little time", async () => {
     api.getSkillUsage.mockResolvedValue({ sessions: 2, since: NOW_S - 3 * DAY, skills: [] });
-    const c = await render();
+    const c = await render(DETAILS("cleanup"));
     expect(c.textContent).toContain("insights.unused.tooEarly");
     expect(c.querySelector('[aria-label="insights.unused.title"] input')).toBeNull();
+  });
+
+  it("opens on the inbox and removes every unused skill after confirmation", async () => {
+    const c = await render("/insights");
+    const inbox = c.querySelector('[aria-label="insights.inbox.title"]')!;
+    expect(inbox.textContent).toContain("insights.inbox.kind.unused");
+    expect(inbox.textContent).toContain("idle");
+    await act(async () => button("insights.inbox.removeAll").click());
+    expect(api.unsyncSkillFromTool).not.toHaveBeenCalled();
+    await act(async () => button("insights.unused.confirm").click());
+    for (let i = 0; i < 4; i++) await flush();
+    expect(api.unsyncSkillFromTool).toHaveBeenCalledWith("idle", "claude_code");
+  });
+
+  it("says all is well when nothing needs doing", async () => {
+    api.getSkillUsage.mockResolvedValue({ sessions: 2, since: NOW_S - 3 * DAY, skills: [] });
+    const c = await render("/insights?view=inbox");
+    expect(c.textContent).toContain("insights.inbox.allGood");
+  });
+
+  it("maps what an agent loads and removes a skill from it after confirmation", async () => {
+    const c = await render("/insights?view=map");
+    const map = c.querySelector('[aria-label="insights.map.title"]')!;
+    const block = map.querySelector("button[aria-pressed='false'][title]") as HTMLButtonElement;
+    expect(block).toBeTruthy();
+    await act(async () => block.click());
+    expect(map.textContent).toContain("idle");
+    await act(async () => button("insights.map.remove").click());
+    expect(api.unsyncSkillFromTool).not.toHaveBeenCalled();
+    await act(async () => button("insights.map.confirm").click());
+    for (let i = 0; i < 4; i++) await flush();
+    expect(api.unsyncSkillFromTool).toHaveBeenCalledWith("idle", "claude_code");
+  });
+
+  it("switches views and remembers the choice", async () => {
+    const c = await render("/insights");
+    await act(async () => (c.querySelector('[data-view="details"]') as HTMLButtonElement).click());
+    expect(c.querySelector('[aria-label="insights.budget.title"]')).toBeTruthy();
+    expect(localStorage.getItem("agent-hangar:insights-view")).toBe("details");
   });
 });

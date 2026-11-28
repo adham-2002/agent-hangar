@@ -17,7 +17,8 @@
     "projects": "项目工作区",
     "addProject": "关联项目",
     "settings": "设置",
-    "presetLoad": "每次会话约 {{tokens}} 个 token · {{clashes}} 处冲突"
+    "presetLoad": "每次会话约 {{tokens}} 个 token · {{clashes}} 处冲突",
+    "insightsTodo": "洞察中有 {{count}} 件值得处理的事"
   },
   "help": {
     "eyebrow": "操作指南",
@@ -529,7 +530,11 @@
       "enabledOf": "{{enabled}}/{{total}}",
       "enableAll": "在此预设中启用整个技能包",
       "disableAll": "在此预设中停用整个技能包",
-      "individual": "单个 Skill"
+      "individual": "单个 Skill",
+      "unusedTag": "未使用",
+      "unusedHint": "Claude Code 会加载它，但 30 天内未使用",
+      "unused_one": "{{count}} 个未使用",
+      "unused_other": "{{count}} 个未使用"
     },
     "agents": {
       "all": "所有 Agent",
@@ -1394,7 +1399,8 @@
       "checking": "正在检查你的技能…",
       "none_other": "你的 {{count}} 个技能中没有发现问题。",
       "tips_other": "{{count}} 个技能有改进建议",
-      "edit": "编辑"
+      "edit": "编辑",
+      "showAll": "显示全部 {{count}} 个"
     },
     "memoryNote": "Claude Code 还会加载你的指令和记忆：每次会话从全局 CLAUDE.md 加载 {{global}}，在项目中最多再加载 {{project}}。",
     "memoryLink": "审阅记忆",
@@ -1416,6 +1422,77 @@
       "open": "打开预设",
       "strip": "每次会话约 {{tokens}} 个 token",
       "details": "详情"
+    },
+    "views": {
+      "label": "洞察视图",
+      "inbox": "待办",
+      "map": "地图",
+      "details": "详情"
+    },
+    "tabs": {
+      "label": "洞察分区",
+      "budget": "预算",
+      "budgetSub": "{{agent}}，每次会话",
+      "presets": "Preset",
+      "presetsSub": "{{heavy}} 个偏重 · {{clashes}} 个有冲突",
+      "presetsOk": "都很轻，无冲突",
+      "cleanup": "清理",
+      "cleanupSub": "每次会话可省 {{tokens}} tokens",
+      "cleanupEarly": "需要 {{days}} 天的记录",
+      "cleanupOk": "没有闲置项",
+      "quality": "质量",
+      "qualitySub": "有问题的 Skill",
+      "qualityOk": "全部正常"
+    },
+    "inbox": {
+      "title": "值得处理的事项",
+      "allGood": "一切正常",
+      "allGoodBody": "没有需要处理的事项。{{agent}} 每次会话加载 {{tokens}} tokens。",
+      "allGoodEmpty": "没有需要处理的事项。",
+      "seeMap": "查看每个 Agent 加载的内容",
+      "summary_one": "{{count}} 件值得处理的事",
+      "summary_other": "{{count}} 件值得处理的事",
+      "summarySaves_one": "{{count}} 件值得处理的事 · 每次会话可省 {{tokens}} tokens",
+      "summarySaves_other": "{{count}} 件值得处理的事 · 每次会话可省 {{tokens}} tokens",
+      "saves": "每次会话可省 {{tokens}} tokens",
+      "weighs": "每次会话 {{tokens}} tokens",
+      "more": "等另外 {{count}} 个",
+      "review": "查看",
+      "removeAll": "全部从 Claude Code 移除",
+      "openPreset": "打开 Preset",
+      "inDetails": "比较 Preset",
+      "kind": {
+        "unused_one": "{{count}} 个 Skill 30 天未使用",
+        "unused_other": "{{count}} 个 Skill 30 天未使用",
+        "projectOnly_one": "{{count}} 个 Skill 只在一个项目中使用",
+        "projectOnly_other": "{{count}} 个 Skill 只在一个项目中使用",
+        "heavyPreset": "{{preset}} Preset 偏重",
+        "presetClash": "{{preset}} 中的 Skill 有冲突",
+        "quality_one": "{{count}} 个 Skill 可能不会被 Agent 选中",
+        "quality_other": "{{count}} 个 Skill 可能不会被 Agent 选中"
+      },
+      "why": {
+        "heavyPreset": "{{count}} 个 Skill · {{clashes}} 个冲突 · 精简不需要的",
+        "presetClash": "{{clashes}} 个 Skill 相互重叠，Agent 可能选错",
+        "heavyPresetNoClash": "{{count}} 个 Skill · 精简不需要的"
+      }
+    },
+    "map": {
+      "title": "上下文地图",
+      "hint": "{{agent}} 每次会话加载的全部内容：{{tokens}} tokens。每个方块是一个技能包，大小按 tokens 计。",
+      "legend": "淡色：30 天未使用 · ⚠：有问题 · 点击方块进行操作",
+      "unusedCount_one": "{{count}} 个未使用",
+      "unusedCount_other": "{{count}} 个未使用",
+      "unused": "未使用",
+      "problem": "有问题",
+      "turnOff": "关闭插件",
+      "remove": "从 {{agent}} 移除",
+      "pick": "点击方块查看其中内容。",
+      "removed": "已移除 {{name}}",
+      "removeFailed": "无法移除",
+      "confirmTitle": "移除 {{name}}？",
+      "confirmMessage": "它仍保留在技能库中，只是这个 Agent 不再加载。随时可以重新部署。",
+      "confirm": "移除"
     }
   },
   "authoring": {

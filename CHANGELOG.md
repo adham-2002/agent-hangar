@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.52.0] - 2026-11-28
+
+### Release Overview
+- Insights is easy to scan: an Inbox of what is worth doing, a Map of what each agent loads, and Details one section at a time.
+
+### User-facing
+- **Inbox** — Insights opens on a short list of what is worth doing, biggest gain first: unused skills, skills used in only one project, heavy presets, clashing skills and skills agents may not pick. Each card says what fixing it saves and has the fix right there; with nothing to do it says so in one line.
+- **Map** — See what each agent loads into every session as blocks sized by tokens, one per pack. Unused packs are faded and packs with problems are marked. Click a block to see its skills and remove one from that agent.
+- **Details** — Four tiles (Budget, Presets, Clean up, Quality) each open their own section, so there is no long scroll. Long quality lists show the first eight.
+- **Insights where you work** — The sidebar shows how many things are worth doing, and Library cards mark skills Claude Code hasn't used in 30 days.
+- Insights remembers the view and section you used last.
+
 ## [1.51.5] - 2026-11-28
 
 ### Release Overview

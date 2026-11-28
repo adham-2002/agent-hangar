@@ -59,6 +59,7 @@ import { PluginPackSection } from "../components/PluginPackSection";
 import { SkillRowsLayout } from "../components/SkillRowsLayout";
 import { DuplicatePackBanner } from "../components/DuplicatePackBanner";
 import { usePluginInventory } from "../hooks/usePluginInventory";
+import { useOptionalInsights } from "../context/InsightsContext";
 import { CLAUDE_CODE_KEY, findDuplicatePacks, pluginPacks } from "../lib/pluginPacks";
 import { packToggle } from "../lib/packTargets";
 import * as api from "../lib/tauri";
@@ -180,6 +181,8 @@ function centralDirName(skill: ManagedSkill) {
   return skill.central_path.split(/[\\/]/).filter(Boolean).pop() || skill.name;
 }
 
+const NO_IDS: ReadonlySet<string> = new Set();
+
 export function MySkills() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -215,6 +218,8 @@ export function MySkills() {
   // Claude Code plugins are packs too: listed beside the library's sources, and
   // checked against them for a pack Claude Code would load twice.
   const pluginInventory = usePluginInventory();
+  // Skills Claude Code loads but has not used in 30 days, from Insights.
+  const unusedSkillIds = useOptionalInsights()?.unusedSkillIds ?? NO_IDS;
   const packs = useMemo(
     () => pluginPacks(pluginInventory.plugins, pluginInventory.details),
     [pluginInventory.plugins, pluginInventory.details]
@@ -1952,6 +1957,7 @@ export function MySkills() {
                   health={{
                     updates: row.group.skills.filter(skillHasUpdate).length,
                     issues: row.group.skills.filter((s) => skillProblems(s).length > 0).length,
+                    unused: row.group.skills.filter((s) => unusedSkillIds.has(s.id)).length,
                   }}
                   presetProgress={
                     viewedPreset
@@ -2055,6 +2061,14 @@ export function MySkills() {
                   <span className="min-w-0 flex-1 truncate text-[13px] text-secondary group-hover:text-primary">
                     {displayName}
                   </span>
+                  {unusedSkillIds.has(skill.id) && (
+                    <span
+                      className="shrink-0 rounded-full bg-surface-hover px-1.5 text-[11px] text-muted"
+                      title={t("mySkills.packCard.unusedHint")}
+                    >
+                      {t("mySkills.packCard.unusedTag")}
+                    </span>
+                  )}
                   {skillProblems(skill).length > 0 && (
                     <span
                       className="shrink-0 text-rose-500"

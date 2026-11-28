@@ -33,7 +33,7 @@ interface Props {
   agentsDisabled: boolean;
   actions: CardAction[];
   /** In a card: how many of the pack's skills have an update or a problem. */
-  health?: { updates: number; issues: number };
+  health?: { updates: number; issues: number; unused?: number };
   /** In a card inside a preset: how much of the pack the preset enables, and a switch for all of it. */
   presetProgress?: { enabled: number; total: number; busy: boolean; onToggle: () => void } | null;
 }
@@ -151,6 +151,11 @@ export function SourceGroupHeader({
           {health && health.issues > 0 ? (
             <span className="shrink-0 text-rose-600 dark:text-rose-400">
               · {t("mySkills.packCard.issues", { count: health.issues })}
+            </span>
+          ) : null}
+          {health && health.unused ? (
+            <span className="shrink-0 text-muted" title={t("mySkills.packCard.unusedHint")}>
+              · {t("mySkills.packCard.unused", { count: health.unused })}
             </span>
           ) : null}
           {presetProgress ? (
